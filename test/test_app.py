@@ -73,7 +73,7 @@ class TestApp(unittest.IsolatedAsyncioTestCase):
 
         # Call the route
         handler, params = self.app._router.get_handler("GET", "/")
-        await handler(req, {})
+        await handler(req, ctx={})
 
         # Assertions
 

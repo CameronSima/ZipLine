@@ -38,14 +38,18 @@ class App:
 
     def middleware(self, middlewares: List[Callable]) -> Callable[[Callable], Callable]:
         def decorator(handler: Callable) -> Callable:
-            async def wrapped_handler(req: Request, *args, **kwargs):
+            async def wrapped_handler(req: Request, **kwargs):
                 # Ensure 'ctx' is always present in kwargs
+                print(f"Kwargs: {kwargs}")
                 kwargs.setdefault("ctx", {})
 
                 for middleware in middlewares:
-                    # Call middleware with req and the kwargs including ctx
-                    req, middleware_ctx = await middleware(req, **kwargs)
-                    # Update the context with any changes from middleware
+                    # if the middleware func takes params, pass them in. Otherwise, just pass req
+
+                    if len(middleware.__code__.co_varnames) > 1:
+                        req, middleware_ctx = await middleware(req, **kwargs)
+                    else:
+                        req, middleware_ctx = await middleware(req)
                     kwargs["ctx"].update(middleware_ctx)
 
                 # Call the final handler with the updated kwargs including ctx
@@ -65,7 +69,7 @@ class App:
                 else:
                     req.path_params = path_params
                     print(f"Path params: {path_params}")
-                    raw_response = await handler(req, {})
+                    raw_response = await handler(req)
                     response = format_response(raw_response)
 
                 await send(
