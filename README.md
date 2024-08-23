@@ -16,15 +16,35 @@ async def home(request):
 
 ```
 
+```bash
+uvicorn my_awesome_project:app
+```
+
+## Handlers
+
+a ZipLine handler is a simple `async` function that takes a `request` object and returns a response, or throws an exception.
+
+A response can be `bytes`, `str`, `dict`, or the ZipeLine `Response` object.
+
+If a `dict` is returned, it will be serialized to JSON.
+
+If an `Exception` is thrown, it will be caught and handled by the framework, returning a basic error response.
+
 ## Middleware
 
-Zipline middleware is inspired by Express.js. Any number of handler functions can be added to the middleware stack. Middleware functions are called in the order they are added to the stack, and pass along their context to the next handler.
+Zipline middleware is inspired by Express.js. Any number of handler functions can be added to the middleware stack.
+
+Each middleware function is just another ZipLine `Handler`.
+
+Middleware functions are called in the order they are added to the stack, and pass along their context to the next handler.
+
+The first handler in the stack to return something other than a `Request` object (including `Exception`) will short-circuit the stack and return the response.
 
 ```python
 from zipline import ZipLine
 
-app = ZipLine()
 
+# middleware functions
 def auth_middleware(request):
     if request.headers.get("Authorization") == "Bearer 1234":
         is_authed = True
@@ -32,19 +52,25 @@ def auth_middleware(request):
         is_authed = False
     return request, { "is_authed": is_authed }
 
-def logging_middleware(request, ctx):
-    print(f"Request to {request.url}")
-    print(f"Is Authed: {ctx.get('is_authed')}")
-    return request
+def auth_guard(request, ctx):
+    if not ctx.get("is_authed"):
+        raise Exception("Unauthorized")
 
-@app.middleware([auth_middleware, logging_middleware])
-async def home(request):
+
+app = ZipLine()
+
+# apply middleware to all routes
+app.middleware(auth_middleware)
+
+@app.get("/profile")
+@app.middleware([auth_guard])
+async def user_profile(request):
     return "Hello, World!"
 ```
 
 ## Dependency Injection
 
-ZipLine supports dependency injection at the route level or application level. Dependencies are passed to the handler function as keyword arguments.
+Like with middeleware, ZipLine supports dependency injection at the route level or application level. Dependencies are passed to the handler function as keyword arguments.
 
 ```python
 from zipline import ZipLine
