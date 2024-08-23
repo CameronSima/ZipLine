@@ -1,100 +1,55 @@
 from typing import Any, Callable, List, Tuple, Type
 
+from app.dependency_injector import DependencyInjector
 from app.handler import Handler
 from app.models import Request
 from app.response import format_response
+from app.router import Router
 from app.utils import parse_scope
 
 
-class Router:
-    _handlers: dict[str, dict[str, Handler]]
-
-    def __init__(self) -> None:
-        self._handlers = {"GET": {}, "POST": {}, "PUT": {}, "DELETE": {}}
-
-    def get_handler(self, method: str, path: str) -> Handler:
-        return self._handlers[method].get(path)
-
-    def route(self, method: str, path: str) -> Callable[[Handler], Callable]:
-        def decorator(handler: Handler) -> Callable:
-            # Register the handler for the given path and method
-            self._handlers[method][path] = handler
-            return handler  # Return the handler unchanged
-
-        return decorator
-
-    def get(self, path: str) -> Callable[[Handler], Callable]:
-        return self.route("GET", path)
-
-    def post(self, path: str) -> Callable[[Handler], Callable]:
-        return self.route("POST", path)
-
-    def put(self, path: str) -> Callable[[Handler], Callable]:
-        return self.route("PUT", path)
-
-    def delete(self, path: str) -> Callable[[Handler], Callable]:
-        return self.route("DELETE", path)
-
-
-class DependencyInjector:
-    _injected_services: dict[str, Any]
-
-    def __init__(self) -> None:
-        self._injected_services = {}
-
-    def inject(
-        self, service_class: Type, name: str = None
-    ) -> Callable[[Callable], Callable]:
-        def decorator(handler: Callable) -> Callable:
-            instance = service_class()
-            service_name = name if name else service_class.__name__
-            self._injected_services[service_name] = instance
-
-            async def wrapped_handler(req: Request, ctx: dict, *args, **kwargs):
-                return await handler(
-                    req, ctx, *args, **kwargs, **{service_name: instance}
-                )
-
-            return wrapped_handler
-
-        return decorator
-
-
 class App:
+    _router: Router
+    _injector: DependencyInjector
+
     def __init__(self) -> None:
-        # Compose the Router and DependencyInjector
-        self.router = Router()
-        self.injector = DependencyInjector()
+        self._router = Router()
+        self._injector = DependencyInjector()
+
+    def router(self, prefix: str, router: Router) -> None:
+        self._router.add_sub_router(prefix, router)
 
     def get(self, path: str) -> Callable[[Handler], Callable]:
-        return self.router.get(path)
+        return self._router.get(path)
 
     def post(self, path: str) -> Callable[[Handler], Callable]:
-        return self.router.post(path)
+        return self._router.post(path)
 
     def put(self, path: str) -> Callable[[Handler], Callable]:
-        return self.router.put(path)
+        return self._router.put(path)
 
     def delete(self, path: str) -> Callable[[Handler], Callable]:
-        return self.router.delete(path)
+        return self._router.delete(path)
 
     def inject(
         self, service_class: Type, name: str = None
     ) -> Callable[[Callable], Callable]:
-        return self.injector.inject(service_class, name)
+        return self._injector.inject(service_class, name)
 
     def middleware(self, middlewares: List[Callable]) -> Callable[[Callable], Callable]:
         def decorator(handler: Callable) -> Callable:
             async def wrapped_handler(req: Request, *args, **kwargs):
-                ctx = {}
-                for middleware in middlewares:
-                    # Each middleware returns the modified request and context
-                    req, middleware_ctx = await middleware(req)
-                    # Merge the context from each middleware
-                    ctx.update(middleware_ctx)
+                # Ensure 'ctx' is always present in kwargs
+                kwargs.setdefault("ctx", {})
 
-                # Call the original handler with the modified request and context
-                return await handler(req, ctx=ctx, **kwargs)
+                for middleware in middlewares:
+                    # Call middleware with req and the kwargs including ctx
+                    req, middleware_ctx = await middleware(req, **kwargs)
+                    # Update the context with any changes from middleware
+                    kwargs["ctx"].update(middleware_ctx)
+
+                # Call the final handler with the updated kwargs including ctx
+                return await handler(req, **kwargs)
 
             return wrapped_handler
 
@@ -104,12 +59,12 @@ class App:
         async def uvicorn_handler(scope: dict, receive: Any, send: Any) -> None:
             if scope["type"] == "http":
                 req = parse_scope(scope)
-
-                handler = self.router.get_handler(req.method, req.path)
+                handler, path_params = self._router.get_handler(req.method, req.path)
                 if handler is None:
-                    # Handle 404 not found
                     response = {"status": 404, "headers": [], "body": b"Not found"}
                 else:
+                    req.path_params = path_params
+                    print(f"Path params: {path_params}")
                     raw_response = await handler(req, {})
                     response = format_response(raw_response)
 
@@ -128,7 +83,6 @@ class App:
                     }
                 )
 
-        # Return uvicorn_handler as the callable for ASGI app
         return uvicorn_handler
 
 
@@ -163,8 +117,9 @@ async def handler(req: Request, ctx: dict, LoggingService: LoggingService) -> di
     return {**res, **ctx}
 
 
-@app.get("/:foo/:bar")
+@app.get("/foo/:bar")
 async def handler2(req: Request) -> dict:
-    res = {"message": "Hello, foo!"}
+    bar = req.path_params.get("bar")
+    res = {"message": f"Hello, {bar}!"}
 
     return res
