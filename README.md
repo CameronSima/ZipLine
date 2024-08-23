@@ -20,6 +20,10 @@ async def home(request):
 uvicorn my_awesome_project:app
 ```
 
+```bash
+curl http://localhost:8000/?planet=Earth
+```
+
 ## Handlers
 
 a ZipLine handler is a simple `async` function that takes a `request` object and returns a response, or throws an exception.
@@ -103,11 +107,11 @@ async def home(request, user_service: UserService, logger: LoggingService):
 Like Express.js, ZipLine supports multiple, nested routers.
 
 ```python
-from zipline import ZipLine
+from zipline import ZipLine, Router
 
 app = ZipLine()
 
-user_router = ZipLine("/user")
+user_router = Router("/user")
 
 @user_router.get("/:id")
 async def get_user(request):
