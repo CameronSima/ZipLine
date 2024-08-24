@@ -2,9 +2,10 @@ import re
 from typing import Any, Callable, List, Tuple, Type
 
 from app.dependency_injector import inject, injector, DependencyInjector
+from app.exception import BaseHttpException
 from app.handler import Handler
 from app.models import Request
-from app.response import format_response
+from app.response import RawResponse, format_response
 from app.router import Router
 from app.utils import parse_scope
 
@@ -37,12 +38,11 @@ class App:
         print(f"App level deps: {app_level_deps}")
         handler, params = self._router.get_handler(method, path)
 
+        # inject app-level dependencies into the handler
         for name, service in app_level_deps.items():
             print(f"Service: {service}")
             handler = inject(service, name)(handler)
 
-        # inject app-level dependencies into the handler
-        # handler = inject(*app_level_deps)(handler)
         return handler, params
 
     def inject(
@@ -89,6 +89,18 @@ class App:
 
         return decorator
 
+    async def call_handler(self, handler: Handler, req: Request) -> RawResponse:
+        try:
+            response = await handler(req)
+        except BaseHttpException as e:
+            response = e
+        except Exception as e:
+            response = BaseHttpException(e, 500)
+
+        print(f"Response: {response}")
+
+        return format_response(response)
+
     def __call__(self, *args: Any, **kwds: Any) -> Any:
         async def uvicorn_handler(scope: dict, receive: Any, send: Any) -> None:
             if scope["type"] == "http":
@@ -98,9 +110,7 @@ class App:
                     response = {"status": 404, "headers": [], "body": b"Not found"}
                 else:
                     req.path_params = path_params
-                    print(f"Path params: {path_params}")
-                    raw_response = await handler(req)
-                    response = format_response(raw_response)
+                    response = await self.call_handler(handler, req)
 
                 await send(
                     {

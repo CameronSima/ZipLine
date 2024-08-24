@@ -1,5 +1,9 @@
 import json
 from typing import List, Tuple, TypedDict, Dict
+from unittest.mock import Base
+from urllib.request import BaseHandler
+
+from app.exception import BaseHttpException
 
 
 class RawResponse(TypedDict):
@@ -65,6 +69,14 @@ def format_response(response: bytes | dict | str | Response) -> RawResponse:
             "headers": format_headers(response.headers),
             "status": response.status,
             "body": format_body(response.body),
+        }
+    elif isinstance(response, BaseHttpException):
+        return {
+            "headers": [
+                (b"content-type", b"application/json"),
+            ],
+            "status": response.status_code,
+            "body": format_body(response.message),
         }
     print(type(response))
     raise ValueError("Invalid response type")
