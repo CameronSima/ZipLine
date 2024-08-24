@@ -1,6 +1,7 @@
+import re
 from typing import Any, Callable, List, Tuple, Type
 
-from app.dependency_injector import DependencyInjector
+from app.dependency_injector import inject, injector, DependencyInjector
 from app.handler import Handler
 from app.models import Request
 from app.response import format_response
@@ -14,7 +15,7 @@ class App:
 
     def __init__(self) -> None:
         self._router = Router()
-        self._injector = DependencyInjector()
+        self._injector = injector
 
     def router(self, prefix: str, router: Router) -> None:
         self._router.add_sub_router(prefix, router)
@@ -31,10 +32,23 @@ class App:
     def delete(self, path: str) -> Callable[[Handler], Callable]:
         return self._router.delete(path)
 
+    def get_handler(self, method: str, path: str) -> Tuple[Handler, dict]:
+        app_level_deps = self._injector._injected_services
+        print(f"App level deps: {app_level_deps}")
+        handler, params = self._router.get_handler(method, path)
+
+        for name, service in app_level_deps.items():
+            print(f"Service: {service}")
+            handler = inject(service, name)(handler)
+
+        # inject app-level dependencies into the handler
+        # handler = inject(*app_level_deps)(handler)
+        return handler, params
+
     def inject(
         self, service_class: Type, name: str = None
     ) -> Callable[[Callable], Callable]:
-        return self._injector.inject(service_class, name)
+        return self._injector.add_injected_service(service_class, name)
 
     def middleware(self, middlewares: List[Callable]) -> Callable[[Callable], Callable]:
         def decorator(handler: Callable) -> Callable:
@@ -44,13 +58,29 @@ class App:
                 kwargs.setdefault("ctx", {})
 
                 for middleware in middlewares:
-                    # if the middleware func takes params, pass them in. Otherwise, just pass req
+                    try:
+                        # if the middleware func takes params, pass them in. Otherwise, just pass req
+                        if len(middleware.__code__.co_varnames) > 1:
+                            _res = await middleware(req, **kwargs)
+                        else:
+                            _res = await middleware(req)
 
-                    if len(middleware.__code__.co_varnames) > 1:
-                        req, middleware_ctx = await middleware(req, **kwargs)
-                    else:
-                        req, middleware_ctx = await middleware(req)
-                    kwargs["ctx"].update(middleware_ctx)
+                        if len(_res) != 2:
+                            req = _res
+                        else:
+                            req, middleware_ctx = _res
+
+                        kwargs["ctx"].update(middleware_ctx)
+                    except Exception as e:
+                        return {
+                            "status": 500,
+                            "headers": [],
+                            "body": b"Internal server error: " + str(e).encode(),
+                        }
+
+                    # check if the middleware returned a response
+                    if not isinstance(req, Request):
+                        return req
 
                 # Call the final handler with the updated kwargs including ctx
                 return await handler(req, **kwargs)
@@ -63,7 +93,7 @@ class App:
         async def uvicorn_handler(scope: dict, receive: Any, send: Any) -> None:
             if scope["type"] == "http":
                 req = parse_scope(scope)
-                handler, path_params = self._router.get_handler(req.method, req.path)
+                handler, path_params = self.get_handler(req.method, req.path)
                 if handler is None:
                     response = {"status": 404, "headers": [], "body": b"Not found"}
                 else:
@@ -110,7 +140,7 @@ class LoggingService:
 
 
 @app.get("/")
-@app.inject(LoggingService)
+@inject(LoggingService)
 @app.middleware([logging_middleware, auth_middleware])
 async def handler(req: Request, ctx: dict, LoggingService: LoggingService) -> dict:
     res = {"message": "Hello, world!"}

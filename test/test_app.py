@@ -1,5 +1,6 @@
 import unittest
 from unittest.mock import AsyncMock
+from app.dependency_injector import inject
 from app.models import Request
 from app.app import App, Router
 
@@ -64,7 +65,7 @@ class TestApp(unittest.IsolatedAsyncioTestCase):
 
         # Define a handler with middleware
         @self.app.get("/")
-        @self.app.inject(LoggingService, name="logger")
+        @inject(LoggingService, name="logger")
         async def test_handler_with_dependency(
             req: Request, ctx: dict, logger: LoggingService
         ):
