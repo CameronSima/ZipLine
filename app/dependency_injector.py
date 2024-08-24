@@ -2,11 +2,28 @@ from typing import Any, Callable
 from app.models import Request
 
 
+# Injected services is a dictionary that stores the services that are injected.
+# Services are stored in the dictionary based on the scope of the service.
+# Default, handler-level services are stored in the 'func' scope.
+# App-level services are stored in the 'app' scope.
+# Router level services are stored in the scope of router's id.
+
+# ***
+# {
+#    "func": {},
+#    "app": {},
+#    "<some-uuid>": {}
+# }
+
+
 class DependencyInjector:
     _injected_services: dict[str, Any]
 
     def __init__(self) -> None:
-        self._injected_services = {}
+        self._injected_services = {
+            "app": {},
+            "func": {},
+        }
 
     def inject(
         self, service_class: Any, name: str = None, scope: str = "func"
@@ -43,7 +60,7 @@ class DependencyInjector:
         services[service_name] = instance
         return instance, service_name
 
-    def get_injected_services(self, scope: str) -> dict[str, Any]:
+    def get_injected_services(self, scope: str = "func") -> dict[str, Any]:
         if scope not in self._injected_services:
             self._injected_services[scope] = {}
         return self._injected_services.get(scope, {})
