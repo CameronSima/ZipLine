@@ -34,8 +34,7 @@ class App:
         return self._router.delete(path)
 
     def get_handler(self, method: str, path: str) -> Tuple[Handler, dict]:
-        app_level_deps = self._injector._injected_services
-        print(f"App level deps: {app_level_deps}")
+        app_level_deps = self._injector._injected_services["app"]
         handler, params = self._router.get_handler(method, path)
 
         # inject app-level dependencies into the handler
@@ -48,7 +47,7 @@ class App:
     def inject(
         self, service_class: Type, name: str = None
     ) -> Callable[[Callable], Callable]:
-        return self._injector.add_injected_service(service_class, name)
+        return self._injector.add_injected_service(service_class, name, "app")
 
     def middleware(self, middlewares: List[Callable]) -> Callable[[Callable], Callable]:
         def decorator(handler: Callable) -> Callable:

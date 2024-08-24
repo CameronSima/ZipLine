@@ -1,16 +1,25 @@
 import re
+import uuid
 from typing import Any, Callable, Dict, Union
+from app.dependency_injector import inject, injector
 
 
 class Router:
+    _id: str
     _handlers: Dict[str, Dict[str, Callable]]
     _sub_routers: Dict[str, "Router"]
     _prefix: str
 
     def __init__(self, prefix: str = "") -> None:
+        self._id = str(uuid.uuid4())
         self._handlers = {"GET": {}, "POST": {}, "PUT": {}, "DELETE": {}}
         self._sub_routers = {}
         self._prefix = prefix.rstrip("/")
+
+    def inject(
+        self, service_class: Any, name: str = None
+    ) -> Callable[[Callable], Callable]:
+        return inject(service_class, name, self._id)
 
     def _convert_path_to_regex(self, path: str) -> str:
         # Convert a path like '/user/:id' to a regex pattern like '/user/(?P<id>[^/]+)'
@@ -21,6 +30,12 @@ class Router:
             # Convert the path into a regex pattern
             path_regex = self._convert_path_to_regex(self._prefix + path)
             self._handlers[method][path_regex] = handler
+
+            # inject router-level dependencies into the handler
+            services = injector.get_injected_services(self._id)
+
+            for name, service in services.items():
+                handler = inject(service, name)(handler)
             return handler
 
         return decorator
