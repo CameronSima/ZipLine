@@ -1,9 +1,8 @@
 import json
 from typing import List, Tuple, TypedDict, Dict
-from unittest.mock import Base
-from urllib.request import BaseHandler
 
-from app.exception import BaseHttpException
+
+from ziplineio.exception import BaseHttpException
 
 
 class RawResponse(TypedDict):

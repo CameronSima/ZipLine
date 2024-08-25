@@ -1,6 +1,6 @@
 import unittest
-from app.models import Request
-from app.app import App
+from ziplineio.models import Request
+from ziplineio.app import App
 
 
 class TestMiddleware(unittest.IsolatedAsyncioTestCase):

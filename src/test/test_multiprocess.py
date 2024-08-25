@@ -3,7 +3,7 @@ import unittest
 import asyncio
 from unittest.mock import patch
 
-from app.process_pool import SyncExecutor, run_sync_in_executor
+from ziplineio.process_pool import SyncExecutor, run_sync_in_executor
 
 
 # Standalone synchronous functions that can be pickled

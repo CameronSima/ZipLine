@@ -1,5 +1,5 @@
 import unittest
-from app import utils
+from ziplineio import utils
 
 
 class TestUtils(unittest.TestCase):

@@ -1,13 +1,13 @@
 from typing import Any, Callable, List, Tuple, Type
 import inspect
 import asyncio
-from app.dependency_injector import inject, injector, DependencyInjector
-from app.exception import BaseHttpException
-from app.handler import Handler
-from app.models import Request
-from app.response import RawResponse, format_response
-from app.router import Router
-from app.utils import parse_scope
+from ziplineio.dependency_injector import inject, injector, DependencyInjector
+from ziplineio.exception import BaseHttpException
+from ziplineio.handler import Handler
+from ziplineio.models import Request
+from ziplineio.response import RawResponse, format_response
+from ziplineio.router import Router
+from ziplineio.utils import parse_scope
 
 
 class App:

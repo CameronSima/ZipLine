@@ -1,8 +1,8 @@
 import unittest
 from unittest.mock import AsyncMock
-from app.dependency_injector import inject
-from app.models import Request
-from app.app import App, Router
+from ziplineio.dependency_injector import inject
+from ziplineio.models import Request
+from ziplineio.app import App, Router
 
 
 class LoggingService:

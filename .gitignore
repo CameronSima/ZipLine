@@ -1,2 +1,6 @@
 env
 __pycache__
+*.pyc
+dist
+pyproject.toml
+*.egg-info

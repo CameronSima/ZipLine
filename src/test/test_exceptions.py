@@ -1,8 +1,7 @@
 import unittest
 
-from app.app import App
-from app.dependency_injector import inject
-from app.exception import BaseHttpException
+from ziplineio.app import App
+from ziplineio.exception import BaseHttpException
 
 
 class TestExceptions(unittest.IsolatedAsyncioTestCase):

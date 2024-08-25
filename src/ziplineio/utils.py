@@ -1,6 +1,6 @@
 import re
 from typing import Dict
-from app.models import ASGIScope, Request
+from ziplineio.models import ASGIScope, Request
 
 
 def parse_scope(scope: ASGIScope) -> Request:

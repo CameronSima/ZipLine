@@ -1,5 +1,5 @@
 from typing import Any, Callable
-from app.models import Request
+from ziplineio.models import Request
 
 
 # Injected services is a dictionary that stores the services that are injected.

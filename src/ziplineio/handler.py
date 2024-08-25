@@ -1,7 +1,7 @@
 from typing import Generic, Protocol, TypeVar
 
-from app.models import Request
-from app.response import Response
+from ziplineio.models import Request
+from ziplineio.response import Response
 
 T = TypeVar("T")
 

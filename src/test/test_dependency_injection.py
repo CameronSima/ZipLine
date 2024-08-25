@@ -1,9 +1,9 @@
 import unittest
 
-from app.app import App
-from app.router import Router
-from app.dependency_injector import DependencyInjector, inject
-import app.dependency_injector
+from ziplineio.app import App
+from ziplineio.router import Router
+from ziplineio.dependency_injector import DependencyInjector, inject
+import ziplineio.dependency_injector
 
 
 class MockService:
@@ -12,12 +12,12 @@ class MockService:
 
 class TestDependencyInjection(unittest.IsolatedAsyncioTestCase):
     def setUp(self):
-        # Initialize the app
-        self.app = App()
+        # Initialize the ziplineio
+        self.ziplineio = App()
 
         # reset the injector
-        app.dependency_injector.injector = DependencyInjector()
-        self.app._injector = app.dependency_injector.injector
+        ziplineio.dependency_injector.injector = DependencyInjector()
+        self.ziplineio._injector = ziplineio.dependency_injector.injector
 
     async def test_inject_service(self):
         # Define a service to inject
@@ -51,7 +51,7 @@ class TestDependencyInjection(unittest.IsolatedAsyncioTestCase):
             return {"message": service.value}
 
         # expect 1 instance of the service
-        self.assertEqual(len(self.app._injector._injected_services["func"]), 1)
+        self.assertEqual(len(self.ziplineio._injector._injected_services["func"]), 1)
 
     async def inject_without_params(self):
         # Define a service to inject
@@ -84,21 +84,21 @@ class TestDependencyInjection(unittest.IsolatedAsyncioTestCase):
         self.assertEqual(response["message"], "Service value")
 
     async def test_inject_app_level_service(self):
-        # Inject the service at the app level
+        # Inject the service at the ziplineio level
 
-        self.app.inject(MockService, name="service")
+        self.ziplineio.inject(MockService, name="service")
 
-        @self.app.get("/")
+        @self.ziplineio.get("/")
         async def test_handler1(req, service: MockService):
             return {"message": f"Service {MockService} injected"}
 
         # doesn't throw an error
-        @self.app.get("/no-service")
+        @self.ziplineio.get("/no-service")
         async def test_handler2(req):
             return {"message": "No service injected"}
 
         # Call the handler
-        handler, params = self.app.get_handler("GET", "/")
+        handler, params = self.ziplineio.get_handler("GET", "/")
         response = await handler({})
         self.assertEqual(response["message"], f"Service {MockService} injected")
 
