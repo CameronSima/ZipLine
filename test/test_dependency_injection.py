@@ -89,12 +89,12 @@ class TestDependencyInjection(unittest.IsolatedAsyncioTestCase):
         self.app.inject(MockService, name="service")
 
         @self.app.get("/")
-        async def test_handler(req, service: MockService):
+        async def test_handler1(req, service: MockService):
             return {"message": f"Service {MockService} injected"}
 
         # doesn't throw an error
         @self.app.get("/no-service")
-        async def test_handler(req):
+        async def test_handler2(req):
             return {"message": "No service injected"}
 
         # Call the handler

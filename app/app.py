@@ -1,6 +1,6 @@
-import re
 from typing import Any, Callable, List, Tuple, Type
-
+import inspect
+import asyncio
 from app.dependency_injector import inject, injector, DependencyInjector
 from app.exception import BaseHttpException
 from app.handler import Handler
@@ -91,7 +91,13 @@ class App:
 
     async def call_handler(self, handler: Handler, req: Request) -> RawResponse:
         try:
-            response = await handler(req)
+            if not inspect.iscoroutinefunction(handler):
+                response = await asyncio.to_thread(handler, req)
+            else:
+                response = await handler(req)
+            print(f"Response in call_handler: {response}")
+            print(f"Response type: {type(response)}")
+
         except BaseHttpException as e:
             response = e
         except Exception as e:
