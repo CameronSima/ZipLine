@@ -37,6 +37,7 @@ class App:
         app_level_deps = self._injector._injected_services["app"]
         handler, params = self._router.get_handler(method, path)
 
+        # TODO: Inject deps when added to the router, not here
         # inject app-level dependencies into the handler
         for name, service in app_level_deps.items():
             print(f"Service: {service}")

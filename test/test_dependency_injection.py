@@ -1,6 +1,7 @@
 import unittest
 
 from app.app import App
+from app.router import Router
 from app.dependency_injector import DependencyInjector, inject
 import app.dependency_injector
 
@@ -50,7 +51,7 @@ class TestDependencyInjection(unittest.IsolatedAsyncioTestCase):
             return {"message": service.value}
 
         # expect 1 instance of the service
-        self.assertEqual(len(self.app._injector._injected_services), 1)
+        self.assertEqual(len(self.app._injector._injected_services["func"]), 1)
 
     async def inject_without_params(self):
         # Define a service to inject
@@ -100,3 +101,24 @@ class TestDependencyInjection(unittest.IsolatedAsyncioTestCase):
         handler, params = self.app.get_handler("GET", "/")
         response = await handler({})
         self.assertEqual(response["message"], f"Service {MockService} injected")
+
+    async def test_inject_router_level(self):
+        # Define a service to inject
+        class Service:
+            def __init__(self):
+                self.value = "Service"
+
+        # Create a router
+        router = Router()
+
+        # Inject the service at the router level
+        router.inject(Service, name="service")
+
+        @router.get("/")
+        async def test_handler(req, service: Service):
+            return {"message": service.value}
+
+        # Call the handler
+        handler, params = router.get_handler("GET", "/")
+        response = await handler({})
+        self.assertEqual(response["message"], "Service")

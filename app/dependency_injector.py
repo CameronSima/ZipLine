@@ -72,6 +72,6 @@ injector = DependencyInjector()
 # function to inject a service into a handler outside the main file
 # (services, etc)
 def inject(
-    service_class: Any, name: str = None, scope=None
+    service_class: Any, name: str = None, scope: str = "func"
 ) -> Callable[[Callable], Callable]:
     return injector.inject(service_class, name, scope)

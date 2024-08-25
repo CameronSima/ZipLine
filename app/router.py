@@ -1,7 +1,7 @@
 import re
 import uuid
 from typing import Any, Callable, Dict, Union
-from app.dependency_injector import inject, injector
+from app.dependency_injector import DependencyInjector, inject, injector
 
 
 class Router:
@@ -9,17 +9,25 @@ class Router:
     _handlers: Dict[str, Dict[str, Callable]]
     _sub_routers: Dict[str, "Router"]
     _prefix: str
+    _injector: DependencyInjector
 
     def __init__(self, prefix: str = "") -> None:
         self._id = str(uuid.uuid4())
         self._handlers = {"GET": {}, "POST": {}, "PUT": {}, "DELETE": {}}
         self._sub_routers = {}
         self._prefix = prefix.rstrip("/")
+        self._injector = injector
 
-    def inject(
-        self, service_class: Any, name: str = None
-    ) -> Callable[[Callable], Callable]:
-        return inject(service_class, name, self._id)
+    def inject(self, service_class: Any, name: str = None) -> None:
+        # return inject(service_class, name, self._id)
+        self._injector.add_injected_service(service_class, name, self._id)
+
+        # # Wrap all handlers in the router with the injected service
+        # for method, handlers in self._handlers.items():
+        #     for path, handler in handlers.items():
+        #         self._handlers[method][path] = inject(service_class, name, self._id)(
+        #             handler
+        #         )
 
     def _convert_path_to_regex(self, path: str) -> str:
         # Convert a path like '/user/:id' to a regex pattern like '/user/(?P<id>[^/]+)'
@@ -29,13 +37,13 @@ class Router:
         def decorator(handler: Callable) -> Callable:
             # Convert the path into a regex pattern
             path_regex = self._convert_path_to_regex(self._prefix + path)
-            self._handlers[method][path_regex] = handler
 
             # inject router-level dependencies into the handler
             services = injector.get_injected_services(self._id)
 
             for name, service in services.items():
                 handler = inject(service, name)(handler)
+            self._handlers[method][path_regex] = handler
             return handler
 
         return decorator
