@@ -1,6 +1,6 @@
 from typing import Generic, Protocol, TypeVar
 
-from ziplineio.models import Request
+from ziplineio.request import Request
 from ziplineio.response import Response
 
 T = TypeVar("T")

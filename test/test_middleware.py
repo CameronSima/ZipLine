@@ -1,6 +1,7 @@
 import unittest
-from ziplineio.models import Request
+from ziplineio.request import Request
 from ziplineio.app import App
+from ziplineio.middleware import middleware
 
 
 class TestMiddleware(unittest.IsolatedAsyncioTestCase):
@@ -12,12 +13,12 @@ class TestMiddleware(unittest.IsolatedAsyncioTestCase):
         # Mock request data
         req = Request(method="GET", path="/with-middleware")
 
-        async def middleware(req, **kwargs):
+        async def my_middleware(req, **kwargs):
             return req, {"example_ctx": "some_value"}
 
         # Define a handler with middleware
         @self.app.get("/with-middleware")
-        @self.app.middleware([middleware])
+        @middleware([my_middleware])
         async def test_handler_with_middleware(req: Request, ctx: dict):
             return {**ctx, "message": "Middleware test"}
 
@@ -44,7 +45,7 @@ class TestMiddleware(unittest.IsolatedAsyncioTestCase):
 
         # Define a handler with middleware
         @self.app.get("/with-middleware")
-        @self.app.middleware([middleware1, middleware2, middleware3])
+        @middleware([middleware1, middleware2, middleware3])
         async def test_handler_with_middleware(req: Request, ctx: dict):
             return {**ctx, "message": "Middleware test"}
 
@@ -72,7 +73,7 @@ class TestMiddleware(unittest.IsolatedAsyncioTestCase):
 
         # Define a handler with middleware
         @self.app.get("/with-middleware")
-        @self.app.middleware([middleware1, middleware2, middleware3])
+        @middleware([middleware1, middleware2, middleware3])
         async def test_handler_with_middleware(req: Request, ctx: dict):
             return {**ctx, "message": "Middleware test"}
 
@@ -103,7 +104,7 @@ class TestMiddleware(unittest.IsolatedAsyncioTestCase):
 
         # Define a handler with middleware
         @self.app.get("/with-middleware")
-        @self.app.middleware([middleware1, middleware2, middleware3])
+        @middleware([middleware1, middleware2, middleware3])
         async def test_handler_with_middleware(req: Request, ctx: dict):
             return {**ctx, "message": "Middleware test"}
 
@@ -113,6 +114,42 @@ class TestMiddleware(unittest.IsolatedAsyncioTestCase):
 
         # Assertions
         self.assertEqual(response["message"], "Hi from middleware 2")
+
+    async def test_app_level_middleware(self):
+        # Mock request data
+        req = Request(method="GET", path="/with-middleware")
+
+        async def app_level_middleware(req, **kwargs):
+            return req, {"app_ctx": "some_value"}
+
+        self.app.middleware([app_level_middleware])
+
+        # Define a handler without explicit middleware
+        @self.app.get("/with-middleware-1")
+        async def test_handler_with_middleware(req: Request, ctx: dict):
+            return {**ctx, "message": "Middleware test 1"}
+
+        # Define another handler without explicit middleware
+        @self.app.get("/without-middleware-2")
+        async def test_handler_without_middleware(req: Request, ctx: dict):
+            return {**ctx, "message": "Middleware test 2"}
+
+        # Call the route
+        handler, params = self.app._router.get_handler("GET", "/with-middleware-1")
+        response = await handler(req)
+
+        # Assertions
+        self.assertEqual(response["message"], "Middleware test 1")
+        self.assertEqual(response["app_ctx"], "some_value")
+
+        # Call the route
+        handler, params = self.app._router.get_handler("GET", "/without-middleware-2")
+        response = await handler(req)
+
+        # Assertions
+
+        self.assertEqual(response["message"], "Middleware test 2")
+        self.assertEqual(response["app_ctx"], "some_value")
 
 
 if __name__ == "__main__":

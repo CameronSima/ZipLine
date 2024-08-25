@@ -1,8 +1,9 @@
 import unittest
 from unittest.mock import AsyncMock
 from ziplineio.dependency_injector import inject
-from ziplineio.models import Request
+from ziplineio.request import Request
 from ziplineio.app import App, Router
+from ziplineio.middleware import middleware
 
 
 class LoggingService:
@@ -47,7 +48,7 @@ class TestApp(unittest.IsolatedAsyncioTestCase):
 
         # Define a handler with middleware
         @self.app.get("/with-middleware")
-        @self.app.middleware(self.example_middleware)
+        @middleware(self.example_middleware)
         async def test_handler_with_middleware(req: Request, ctx: dict):
             return {**ctx, "message": "Middleware test"}
 

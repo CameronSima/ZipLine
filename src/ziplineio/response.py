@@ -1,3 +1,4 @@
+from curses import raw
 import json
 from typing import List, Tuple, TypedDict, Dict
 
@@ -38,9 +39,11 @@ def format_body(body: bytes | str | dict) -> bytes:
     raise ValueError("Invalid body type")
 
 
-def format_response(response: bytes | dict | str | Response) -> RawResponse:
+def format_response(
+    response: bytes | dict | str | Response, default_headers: dict[str, str]
+) -> RawResponse:
     if isinstance(response, bytes):
-        return {
+        raw_response = {
             "headers": [
                 (b"content-type", b"text/plain"),
             ],
@@ -48,7 +51,7 @@ def format_response(response: bytes | dict | str | Response) -> RawResponse:
             "body": response,
         }
     elif isinstance(response, str):
-        return {
+        raw_response = {
             "headers": [
                 (b"content-type", b"text/plain"),
             ],
@@ -56,7 +59,7 @@ def format_response(response: bytes | dict | str | Response) -> RawResponse:
             "body": bytes(response, "utf-8"),
         }
     elif isinstance(response, dict):
-        return {
+        raw_response = {
             "headers": [
                 (b"content-type", b"application/json"),
             ],
@@ -64,18 +67,21 @@ def format_response(response: bytes | dict | str | Response) -> RawResponse:
             "body": bytes(json.dumps(response), "utf-8"),
         }
     elif isinstance(response, Response):
-        return {
+        raw_response = {
             "headers": format_headers(response.headers),
             "status": response.status,
             "body": format_body(response.body),
         }
     elif isinstance(response, BaseHttpException):
-        return {
+        raw_response = {
             "headers": [
                 (b"content-type", b"application/json"),
             ],
             "status": response.status_code,
             "body": format_body(response.message),
         }
-    print(type(response))
-    raise ValueError("Invalid response type")
+    else:
+        raise ValueError("Invalid response type")
+
+    raw_response["headers"].extend(format_headers(default_headers))
+    return raw_response

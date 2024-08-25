@@ -1,10 +1,11 @@
 from typing import Any, Callable, List, Tuple, Type
 import inspect
 import asyncio
+from ziplineio.middleware import middleware
 from ziplineio.dependency_injector import inject, injector, DependencyInjector
 from ziplineio.exception import BaseHttpException
 from ziplineio.handler import Handler
-from ziplineio.models import Request
+from ziplineio.request import Request
 from ziplineio.response import RawResponse, format_response
 from ziplineio.router import Router
 from ziplineio.utils import parse_scope
@@ -13,10 +14,12 @@ from ziplineio.utils import parse_scope
 class App:
     _router: Router
     _injector: DependencyInjector
+    _default_headers: dict[str, str]
 
     def __init__(self) -> None:
         self._router = Router()
         self._injector = injector
+        self._default_headers = {"x-powered-by": "zipline"}
 
     def router(self, prefix: str, router: Router) -> None:
         self._router.add_sub_router(prefix, router)
@@ -50,44 +53,8 @@ class App:
     ) -> Callable[[Callable], Callable]:
         return self._injector.add_injected_service(service_class, name, "app")
 
-    def middleware(self, middlewares: List[Callable]) -> Callable[[Callable], Callable]:
-        def decorator(handler: Callable) -> Callable:
-            async def wrapped_handler(req: Request, **kwargs):
-                # Ensure 'ctx' is always present in kwargs
-                print(f"Kwargs: {kwargs}")
-                kwargs.setdefault("ctx", {})
-
-                for middleware in middlewares:
-                    try:
-                        # if the middleware func takes params, pass them in. Otherwise, just pass req
-                        if len(middleware.__code__.co_varnames) > 1:
-                            _res = await middleware(req, **kwargs)
-                        else:
-                            _res = await middleware(req)
-
-                        if len(_res) != 2:
-                            req = _res
-                        else:
-                            req, middleware_ctx = _res
-
-                        kwargs["ctx"].update(middleware_ctx)
-                    except Exception as e:
-                        return {
-                            "status": 500,
-                            "headers": [],
-                            "body": b"Internal server error: " + str(e).encode(),
-                        }
-
-                    # check if the middleware returned a response
-                    if not isinstance(req, Request):
-                        return req
-
-                # Call the final handler with the updated kwargs including ctx
-                return await handler(req, **kwargs)
-
-            return wrapped_handler
-
-        return decorator
+    def middleware(self, middlewares: List[Callable]) -> None:
+        self._router.middleware(middlewares)
 
     async def call_handler(self, handler: Handler, req: Request) -> RawResponse:
         try:
@@ -95,17 +62,13 @@ class App:
                 response = await asyncio.to_thread(handler, req)
             else:
                 response = await handler(req)
-            print(f"Response in call_handler: {response}")
-            print(f"Response type: {type(response)}")
 
         except BaseHttpException as e:
             response = e
         except Exception as e:
             response = BaseHttpException(e, 500)
 
-        print(f"Response: {response}")
-
-        return format_response(response)
+        return format_response(response, self._default_headers)
 
     def __call__(self, *args: Any, **kwds: Any) -> Any:
         async def uvicorn_handler(scope: dict, receive: Any, send: Any) -> None:
@@ -157,7 +120,7 @@ class LoggingService:
 
 @app.get("/")
 @inject(LoggingService)
-@app.middleware([logging_middleware, auth_middleware])
+@middleware([logging_middleware, auth_middleware])
 async def handler(req: Request, ctx: dict, LoggingService: LoggingService) -> dict:
     res = {"message": "Hello, world!"}
 

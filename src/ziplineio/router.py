@@ -1,13 +1,16 @@
 import re
 
 import uuid
-from typing import Any, Callable, Dict, Union
+from typing import Any, Callable, Dict, List, Union
 from ziplineio.dependency_injector import DependencyInjector, inject, injector
+from ziplineio.handler import Handler
+from ziplineio.middleware import middleware
 
 
 class Router:
     _id: str
     _handlers: Dict[str, Dict[str, Callable]]
+    _router_level_middelwares: List[Handler]
     _sub_routers: Dict[str, "Router"]
     _prefix: str
     _injector: DependencyInjector
@@ -15,12 +18,15 @@ class Router:
     def __init__(self, prefix: str = "") -> None:
         self._id = str(uuid.uuid4())
         self._handlers = {"GET": {}, "POST": {}, "PUT": {}, "DELETE": {}}
+        self._router_level_middelwares = []
         self._sub_routers = {}
         self._prefix = prefix.rstrip("/")
         self._injector = injector
 
+    def middleware(self, middlewares: List[Handler]) -> None:
+        self._router_level_middelwares.extend(middlewares)
+
     def inject(self, service_class: Any, name: str = None) -> None:
-        # return inject(service_class, name, self._id)
         self._injector.add_injected_service(service_class, name, self._id)
 
     def _convert_path_to_regex(self, path: str) -> str:
@@ -29,13 +35,15 @@ class Router:
 
     def route(self, method: str, path: str) -> Callable[[Callable], Callable]:
         def decorator(handler: Callable) -> Callable:
-            # if the handler isn't async, make it async
-
             # inject router-level dependencies into the handler
             services = injector.get_injected_services(self._id)
 
             for name, service in services.items():
                 handler = inject(service, name)(handler)
+
+            # wrap the handler with router-level middlewares
+            if len(self._router_level_middelwares) > 0:
+                handler = middleware(self._router_level_middelwares)(handler)
 
             # Convert the path into a regex pattern
             path_regex = self._convert_path_to_regex(self._prefix + path)
