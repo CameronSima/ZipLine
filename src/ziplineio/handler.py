@@ -7,5 +7,5 @@ T = TypeVar("T")
 
 
 class Handler(Protocol, Generic[T]):
-    async def __call__(self, req: Request, ctx: T) -> bytes | str | Response:
+    async def __call__(self, req: Request, ctx: T) -> bytes | str | dict | Response:
         pass

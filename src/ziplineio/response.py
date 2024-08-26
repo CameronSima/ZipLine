@@ -1,4 +1,3 @@
-from curses import raw
 import json
 from typing import List, Tuple, TypedDict, Dict
 
@@ -22,6 +21,23 @@ class Response:
     headers: Dict[str, str]
     body: str
 
+    def __len__(self) -> int:
+        return 1
+
+
+class StaticFileResponse(Response):
+    def __init__(self, file_path: str):
+        headers = {
+            "Content-Type": "octet-stream",
+        }
+
+        body = self.get_file(file_path)
+        super().__init__(200, headers, body)
+
+    def get_file(self, file_path: str) -> bytes:
+        with open(file_path, "rb") as file:
+            return file.read()
+
 
 def format_headers(headers: Dict[str, str] | None) -> List[Tuple[bytes, bytes]]:
     if headers is None:
@@ -42,6 +58,8 @@ def format_body(body: bytes | str | dict) -> bytes:
 def format_response(
     response: bytes | dict | str | Response, default_headers: dict[str, str]
 ) -> RawResponse:
+    print("TYUUPE:")
+    print(type(response))
     if isinstance(response, bytes):
         raw_response = {
             "headers": [
@@ -67,6 +85,7 @@ def format_response(
             "body": bytes(json.dumps(response), "utf-8"),
         }
     elif isinstance(response, Response):
+        print("HRE")
         raw_response = {
             "headers": format_headers(response.headers),
             "status": response.status,
@@ -81,6 +100,7 @@ def format_response(
             "body": format_body(response.message),
         }
     else:
+        print(response)
         raise ValueError("Invalid response type")
 
     raw_response["headers"].extend(format_headers(default_headers))

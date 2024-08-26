@@ -4,6 +4,13 @@ from ziplineio.request import Request
 from ziplineio.models import ASGIScope
 
 
+class Singleton:
+    def __new__(cls):
+        if cls._instance is None:
+            cls._instance = super(cls, cls).__new__(cls)
+        return cls._instance
+
+
 def parse_scope(scope: ASGIScope) -> Request:
     query_string = scope["query_string"].decode("utf-8")
 

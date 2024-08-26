@@ -1,7 +1,9 @@
 from typing import Any, Callable, List, Tuple, Type
 import inspect
 import asyncio
-from ziplineio.middleware import middleware
+
+
+from ziplineio.middleware import middleware, run_middleware_stack
 from ziplineio.dependency_injector import inject, injector, DependencyInjector
 from ziplineio.exception import BaseHttpException
 from ziplineio.handler import Handler
@@ -43,7 +45,6 @@ class App:
         # TODO: Inject deps when added to the router, not here
         # inject app-level dependencies into the handler
         for name, service in app_level_deps.items():
-            print(f"Service: {service}")
             handler = inject(service, name)(handler)
 
         return handler, params
@@ -75,11 +76,25 @@ class App:
             if scope["type"] == "http":
                 req = parse_scope(scope)
                 handler, path_params = self.get_handler(req.method, req.path)
+                req.path_params = path_params
+
                 if handler is None:
-                    response = {"status": 404, "headers": [], "body": b"Not found"}
+                    # try running through middlewares
+
+                    req, ctx, res = await run_middleware_stack(
+                        self._router._router_level_middelwares, req, {}
+                    )
+
+                    if res is not None:
+                        response = format_response(res, self._default_headers)
+                    else:
+                        response = {"status": 404, "headers": [], "body": b"Not found"}
+
                 else:
-                    req.path_params = path_params
                     response = await self.call_handler(handler, req)
+
+                print("SENDING RESPONSE")
+                print(response)
 
                 await send(
                     {
