@@ -45,7 +45,7 @@ Middleware functions are called in the order they are added to the stack, and pa
 The first handler in the stack to return something other than a `Request` object (including `Exception`) will short-circuit the stack and return the response.
 
 ```python
-from zipline import ZipLine
+from zipline import ZipLine, middleware
 
 
 # middleware functions
@@ -67,7 +67,7 @@ app = ZipLine()
 app.middleware(auth_middleware)
 
 @app.get("/profile")
-@app.middleware([auth_guard])
+@middleware([auth_guard])
 async def user_profile(request):
     return "Hello, World!"
 ```
@@ -77,7 +77,7 @@ async def user_profile(request):
 Like with middeleware, ZipLine supports dependency injection at the route level or application level. Dependencies are passed to the handler function as keyword arguments.
 
 ```python
-from zipline import ZipLine
+from zipline import ZipLine, inject
 
 class LoggingService:
     def log_request(self, request):
@@ -96,7 +96,7 @@ app = ZipLine()
 app.inject(LoggingService)
 
 @app.route("/")
-@app.inject(UserService, name="user_service")
+@inject(UserService, name="user_service")
 async def home(request, user_service: UserService, logger: LoggingService):
     logger.log_request(request)
     return user_service.get_user()

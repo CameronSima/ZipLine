@@ -50,6 +50,7 @@ class TestResponse(unittest.IsolatedAsyncioTestCase):
     async def test_static_file(self):
         r = requests.get("http://localhost:5050/static/css/test.css")
         self.assertEqual(r.status_code, 200)
+        print(r.content)
 
     async def asyncTearDown(self):
         self.proc.terminate()
