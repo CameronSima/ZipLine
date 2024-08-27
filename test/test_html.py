@@ -29,7 +29,7 @@ class TestHtml(unittest.IsolatedAsyncioTestCase):
         """Bring server up."""
         self.proc = Process(target=run_server, args=(), daemon=False)
         self.proc.start()
-        await asyncio.sleep(0.2)  # time for the server to start
+        await asyncio.sleep(0.3)  # time for the server to start
 
     async def test_render_jinja(self):
         response = requests.get("http://localhost:5050/")
