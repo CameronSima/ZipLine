@@ -10,22 +10,25 @@ from ziplineio.exception import BaseHttpException
 from ziplineio import settings
 
 
-async def call_handler(handler: Handler, req: Request) -> RawResponse:
+async def call_handler(
+    handler: Handler, req: Request, format: bool = True
+) -> RawResponse:
     try:
         if not inspect.iscoroutinefunction(handler):
             response = await asyncio.to_thread(handler, req)
         else:
             response = await handler(req)
 
-        print("Response from handler:")
-        print(response)
-
     except BaseHttpException as e:
         response = e
     except Exception as e:
         print(e)
         response = BaseHttpException(e, 500)
-    return format_response(response, settings.DEFAULT_HEADERS)
+
+    if format:
+        return format_response(response, settings.DEFAULT_HEADERS)
+    else:
+        return response
 
 
 def parse_scope(scope: ASGIScope) -> Request:

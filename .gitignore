@@ -4,3 +4,4 @@ __pycache__
 dist
 pyproject.toml
 *.egg-info
+build_and_deploy.sh
