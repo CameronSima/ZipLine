@@ -2,6 +2,7 @@ import unittest
 
 from ziplineio.app import App
 from ziplineio.exception import BaseHttpException
+from ziplineio.utils import call_handler
 
 
 class TestExceptions(unittest.IsolatedAsyncioTestCase):
@@ -16,7 +17,7 @@ class TestExceptions(unittest.IsolatedAsyncioTestCase):
             raise BaseHttpException("Hey! We messed up", 409)
 
         # Call the handler
-        response = await self.app.call_handler(test_handler, {})
+        response = await call_handler(test_handler, {})
         self.assertEqual(response["body"], b"Hey! We messed up")
         self.assertEqual(response["status"], 409)
 
@@ -29,6 +30,6 @@ class TestExceptions(unittest.IsolatedAsyncioTestCase):
             raise CustomHttpException("Hey! We messed up bad", 402)
 
         # Call the handler
-        response = await self.app.call_handler(test_handler, {})
+        response = await call_handler(test_handler, {})
         self.assertEqual(response["body"], b"Hey! We messed up bad")
         self.assertEqual(response["status"], 402)

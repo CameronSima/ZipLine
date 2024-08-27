@@ -1,14 +1,31 @@
 import re
+import inspect
+import asyncio
 from typing import Dict
 from ziplineio.request import Request
+from ziplineio.response import RawResponse, format_response
+from ziplineio.handler import Handler
 from ziplineio.models import ASGIScope
+from ziplineio.exception import BaseHttpException
+from ziplineio import settings
 
 
-class Singleton:
-    def __new__(cls):
-        if cls._instance is None:
-            cls._instance = super(cls, cls).__new__(cls)
-        return cls._instance
+async def call_handler(handler: Handler, req: Request) -> RawResponse:
+    try:
+        if not inspect.iscoroutinefunction(handler):
+            response = await asyncio.to_thread(handler, req)
+        else:
+            response = await handler(req)
+
+        print("Response from handler:")
+        print(response)
+
+    except BaseHttpException as e:
+        response = e
+    except Exception as e:
+        print(e)
+        response = BaseHttpException(e, 500)
+    return format_response(response, settings.DEFAULT_HEADERS)
 
 
 def parse_scope(scope: ASGIScope) -> Request:

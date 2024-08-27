@@ -13,7 +13,7 @@ def _get_headers(filename: str) -> dict[str, str]:
     return {"Content-Type": "text/plain"}
 
 
-def staticfiles(filepath: str, path_prefix: str = "/static"):
+def staticfiles(filepath: str, path_prefix: str):
     async def handler(req, ctx):
         print(f"Request path: {req.path}")
         if req.path.startswith(path_prefix):
@@ -23,8 +23,8 @@ def staticfiles(filepath: str, path_prefix: str = "/static"):
             _filepath = filepath + _filepath
             # get full path
             _filepath = path.abspath(_filepath)
-            print(f"Filepath: {_filepath}")
-            return StaticFileResponse(_filepath)
+            headers = _get_headers(_filepath)
+            return StaticFileResponse(_filepath, headers)
         return req, ctx
 
     return handler

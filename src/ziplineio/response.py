@@ -26,17 +26,18 @@ class Response:
 
 
 class StaticFileResponse(Response):
-    def __init__(self, file_path: str):
-        headers = {
-            "Content-Type": "octet-stream",
-        }
-
+    def __init__(self, file_path: str, headers: Dict[str, str]):
         body = self.get_file(file_path)
         super().__init__(200, headers, body)
 
     def get_file(self, file_path: str) -> bytes:
         with open(file_path, "rb") as file:
             return file.read()
+
+
+class JinjaResponse(Response):
+    def __init__(self, body: str):
+        super().__init__(200, {"Content-Type": "text/html"}, body)
 
 
 def format_headers(headers: Dict[str, str] | None) -> List[Tuple[bytes, bytes]]:

@@ -74,7 +74,7 @@ async def user_profile(request):
 
 ## Dependency Injection
 
-Like with middeleware, ZipLine supports dependency injection at the route level or application level. Dependencies are passed to the handler function as keyword arguments.
+Like with middeleware, ZipLine supports dependency injection at the route, router, or application level. Dependencies are passed to the handler function as keyword arguments.
 
 ```python
 from zipline import ZipLine, inject
@@ -118,4 +118,40 @@ async def get_user(request):
     return f"User {request.path_params.get('id')}"
 
 app.router(user_router)
+```
+
+## Static Files
+
+ZipLine can serve static files from a directory.
+
+```python
+from zipline import ZipLine
+
+
+app = ZipLine()
+
+# path_prefix is optional; defaults to "/static"
+app.static("test/mocks/static", path_prefix="/my_static_url")
+```
+
+## HTML Templates
+
+ZipLine can render HTML templates using Jinja2.
+
+The `jinja` decorator takes a Jinja2 `Environment` object and a template name to be rendered by the handler. Rather than a regular response, the handler should return a dictionary of context variables to be passed to the template.
+
+```python
+from jinja2 import Environment, PackageLoader, select_autoescape
+from ziplineio. import ZipLine
+from ziplineio.html.jinja import jinja
+
+env = Environment(loader=PackageLoader("myapp"), autoescape=select_autoescape())
+
+app = ZipLine()
+app.static("static_files")
+
+@app.get("/")
+@jinja(env, "home.html")
+def home(req):
+    return {"message": "Hello, world!"}
 ```

@@ -1,27 +1,24 @@
 from typing import Any, Callable, List, Tuple, Type
-import inspect
-import asyncio
 
 
 from ziplineio.middleware import middleware, run_middleware_stack
 from ziplineio.dependency_injector import inject, injector, DependencyInjector
-from ziplineio.exception import BaseHttpException
+from ziplineio import settings
 from ziplineio.handler import Handler
 from ziplineio.request import Request
-from ziplineio.response import RawResponse, format_response
+from ziplineio.response import format_response
 from ziplineio.router import Router
-from ziplineio.utils import parse_scope
+from ziplineio.static import staticfiles
+from ziplineio.utils import call_handler, parse_scope
 
 
 class App:
     _router: Router
     _injector: DependencyInjector
-    _default_headers: dict[str, str]
 
     def __init__(self) -> None:
         self._router = Router()
         self._injector = injector
-        self._default_headers = {"x-powered-by": "zipline"}
 
     def router(self, prefix: str, router: Router) -> None:
         self._router.add_sub_router(prefix, router)
@@ -57,19 +54,8 @@ class App:
     def middleware(self, middlewares: List[Callable]) -> None:
         self._router.middleware(middlewares)
 
-    async def call_handler(self, handler: Handler, req: Request) -> RawResponse:
-        try:
-            if not inspect.iscoroutinefunction(handler):
-                response = await asyncio.to_thread(handler, req)
-            else:
-                response = await handler(req)
-
-        except BaseHttpException as e:
-            response = e
-        except Exception as e:
-            response = BaseHttpException(e, 500)
-
-        return format_response(response, self._default_headers)
+    def static(self, path: str, path_prefix: str = "/static") -> None:
+        self.middleware([staticfiles(path, path_prefix)])
 
     def __call__(self, *args: Any, **kwds: Any) -> Any:
         async def uvicorn_handler(scope: dict, receive: Any, send: Any) -> None:
@@ -86,12 +72,12 @@ class App:
                     )
 
                     if res is not None:
-                        response = format_response(res, self._default_headers)
+                        response = format_response(res, settings.DEFAULT_HEADERS)
                     else:
                         response = {"status": 404, "headers": [], "body": b"Not found"}
 
                 else:
-                    response = await self.call_handler(handler, req)
+                    response = await call_handler(handler, req)
 
                 print("SENDING RESPONSE")
                 print(response)
