@@ -34,6 +34,9 @@ class TestHtml(unittest.IsolatedAsyncioTestCase):
     async def test_render_jinja(self):
         response = requests.get("http://localhost:5050/")
 
+        print("Resooinse")
+        print(response.text)
+
         self.assertEqual(response.status_code, 200)
         self.assertEqual(response.headers["Content-Type"], "text/html")
         self.assertTrue("<p>Welcome to the home page!</p>" in response.text)

@@ -3,7 +3,7 @@ import inspect
 import asyncio
 from typing import Dict
 from ziplineio.request import Request
-from ziplineio.response import RawResponse, format_response
+from ziplineio.response import RawResponse, Response, format_response
 from ziplineio.handler import Handler
 from ziplineio.models import ASGIScope
 from ziplineio.exception import BaseHttpException
@@ -11,24 +11,27 @@ from ziplineio import settings
 
 
 async def call_handler(
-    handler: Handler, req: Request, format: bool = True
-) -> RawResponse:
+    handler: Handler,
+    req: Request,
+    **kwargs,
+) -> bytes | str | dict | Response | Exception:
     try:
         if not inspect.iscoroutinefunction(handler):
-            response = await asyncio.to_thread(handler, req)
+            response = await asyncio.to_thread(handler, req, **kwargs)
         else:
-            response = await handler(req)
+            response = await handler(req, **kwargs)
 
-    except BaseHttpException as e:
-        response = e
     except Exception as e:
+        response = e
+        print("EXCEPTION")
         print(e)
-        response = BaseHttpException(e, 500)
+    # except Exception as e:
+    #     print(e)
+    #     response = BaseHttpException(e, 500)
 
-    if format:
-        return format_response(response, settings.DEFAULT_HEADERS)
-    else:
-        return response
+    print(f"response in call handler: {response}")
+
+    return response
 
 
 def parse_scope(scope: ASGIScope) -> Request:

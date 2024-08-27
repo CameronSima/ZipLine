@@ -68,32 +68,34 @@ class App:
                     # try running through middlewares
 
                     req, ctx, res = await run_middleware_stack(
-                        self._router._router_level_middelwares, req, {}
+                        self._router._router_level_middelwares, req, **{}
                     )
 
-                    if res is not None:
-                        response = format_response(res, settings.DEFAULT_HEADERS)
-                    else:
+                    if res is None:
                         response = {"status": 404, "headers": [], "body": b"Not found"}
+                    else:
+                        response = res
 
                 else:
                     response = await call_handler(handler, req)
 
+                raw_response = format_response(response, settings.DEFAULT_HEADERS)
+
                 print("SENDING RESPONSE")
-                print(response)
+                print(raw_response)
 
                 await send(
                     {
                         "type": "http.response.start",
-                        "status": response["status"],
-                        "headers": response["headers"],
+                        "status": raw_response["status"],
+                        "headers": raw_response["headers"],
                     }
                 )
 
                 await send(
                     {
                         "type": "http.response.body",
-                        "body": response["body"],
+                        "body": raw_response["body"],
                     }
                 )
 

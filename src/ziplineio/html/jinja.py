@@ -9,7 +9,7 @@ def jinja(env: Any, template_name: str):
 
     def decorator(handler):
         async def wrapped_handler(*args, **kwargs):
-            context = await call_handler(handler, *args, **kwargs, format=False)
+            context = await call_handler(handler, *args, **kwargs)
             rendered = template.render(context)
             return JinjaResponse(rendered)
 

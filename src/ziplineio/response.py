@@ -47,6 +47,9 @@ def format_headers(headers: Dict[str, str] | None) -> List[Tuple[bytes, bytes]]:
 
 
 def format_body(body: bytes | str | dict) -> bytes:
+    print("BODY:")
+    print(body)
+    print(type(body))
     if isinstance(body, bytes):
         return body
     elif isinstance(body, str):
@@ -57,7 +60,7 @@ def format_body(body: bytes | str | dict) -> bytes:
 
 
 def format_response(
-    response: bytes | dict | str | Response, default_headers: dict[str, str]
+    response: bytes | dict | str | Response | Exception, default_headers: dict[str, str]
 ) -> RawResponse:
     print("TYUUPE:")
     print(type(response))
@@ -86,7 +89,6 @@ def format_response(
             "body": bytes(json.dumps(response), "utf-8"),
         }
     elif isinstance(response, Response):
-        print("HRE")
         raw_response = {
             "headers": format_headers(response.headers),
             "status": response.status,
@@ -100,8 +102,15 @@ def format_response(
             "status": response.status_code,
             "body": format_body(response.message),
         }
+    elif isinstance(response, Exception):
+        raw_response = {
+            "headers": [
+                (b"content-type", b"text/plain"),
+            ],
+            "status": 500,
+            "body": b"Internal server error: " + bytes(str(response), "utf-8"),
+        }
     else:
-        print(response)
         raise ValueError("Invalid response type")
 
     raw_response["headers"].extend(format_headers(default_headers))

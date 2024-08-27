@@ -1,7 +1,11 @@
+from operator import call
 import unittest
+from ziplineio import settings
 from ziplineio.request import Request
 from ziplineio.app import App
 from ziplineio.middleware import middleware
+from ziplineio.response import format_response
+from ziplineio.utils import call_handler
 
 
 class TestMiddleware(unittest.IsolatedAsyncioTestCase):
@@ -79,7 +83,10 @@ class TestMiddleware(unittest.IsolatedAsyncioTestCase):
 
         # Call the route
         handler, params = self.app._router.get_handler("GET", "/with-middleware")
-        response = await handler(req)
+        response = await call_handler(handler, req, format=True)
+        response = format_response(response, settings.DEFAULT_HEADERS)
+
+        print(f"response: {response}")
 
         # Assertions
         self.assertEqual(response["status"], 500)
@@ -110,7 +117,9 @@ class TestMiddleware(unittest.IsolatedAsyncioTestCase):
 
         # Call the route
         handler, params = self.app._router.get_handler("GET", "/with-middleware")
-        response = await handler(req)
+        response = await call_handler(handler, req, format=False)
+
+        print(response)
 
         # Assertions
         self.assertEqual(response["message"], "Hi from middleware 2")
