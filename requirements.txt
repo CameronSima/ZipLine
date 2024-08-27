@@ -37,5 +37,4 @@ urllib3==2.2.2
 uuid==1.30
 uvicorn==0.30.6
 wheel==0.44.0
-zipline @ file:///Users/cameronsima/dev/my_python_framework/dist/zipline-0.1-py3-none-any.whl#sha256=9b023d8752d046feee02c89ffefdb8b5198dc7f32aa4cd77eea2c5c7fbba4fc2
 zipp==3.20.0
