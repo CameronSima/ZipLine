@@ -13,9 +13,19 @@ from ziplineio.router import Router
 app = App()
 
 
-@app.get("/")
-async def handler(req):
+@app.get("/bytes")
+async def bytes_handler(req):
+    return b"Hello, world!"
+
+
+@app.get("/dict")
+async def dict_handler(req):
     return {"message": "Hello, world!"}
+
+
+@app.get("/str")
+async def str_handler(req):
+    return "Hello, world!"
 
 
 # Will be made multithreaded
@@ -43,15 +53,30 @@ class TestE2E(unittest.IsolatedAsyncioTestCase):
         self.proc.start()
         await asyncio.sleep(0.2)  # time for the server to start
 
-    async def test_basic_route(self):
-        response = requests.get("http://localhost:5050/")
+    async def test_handler_returns_bytes(self):
+        response = requests.get("http://localhost:5050/bytes")
+        self.assertEqual(response.status_code, 200)
+        self.assertEqual(response.content, b"Hello, world!")
+
+    async def test_handler_returns_str(self):
+        response = requests.get("http://localhost:5050/str")
+        self.assertEqual(response.status_code, 200)
+        self.assertEqual(response.text, "Hello, world!")
+
+    async def test_handler_returns_dict(self):
+        response = requests.get("http://localhost:5050/dict")
         print(response.json())
         self.assertEqual(response.status_code, 200)
+        self.assertEqual(response.json(), {"message": "Hello, world!"})
 
     async def test_sync_route(self):
         response = requests.get("http://localhost:5050/sync-thread")
         print(response.content)
         self.assertEqual(response.status_code, 200)
+
+    async def test_404(self):
+        response = requests.get("http://localhost:5050/some-random-route")
+        self.assertEqual(response.status_code, 404)
 
     async def asyncTearDown(self):
         self.proc.terminate()

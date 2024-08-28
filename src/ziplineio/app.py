@@ -1,6 +1,8 @@
+from ast import Not
 from typing import Any, Callable, List, Tuple, Type
 
 
+from ziplineio.exception import NotFoundHttpException
 from ziplineio.middleware import middleware, run_middleware_stack
 from ziplineio.dependency_injector import inject, injector, DependencyInjector
 from ziplineio import settings
@@ -72,7 +74,7 @@ class App:
                     )
 
                     if res is None:
-                        response = {"status": 404, "headers": [], "body": b"Not found"}
+                        response = NotFoundHttpException()
                     else:
                         response = res
 

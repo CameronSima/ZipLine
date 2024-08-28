@@ -5,3 +5,8 @@ class BaseHttpException(Exception):
 
     def __len__(self):
         return 1
+
+
+class NotFoundHttpException(BaseHttpException):
+    def __init__(self, message="Not found"):
+        super().__init__(message, 404)
