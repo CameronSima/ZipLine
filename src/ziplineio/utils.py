@@ -3,11 +3,9 @@ import inspect
 import asyncio
 from typing import Dict
 from ziplineio.request import Request
-from ziplineio.response import RawResponse, Response, format_response
+from ziplineio.response import Response
 from ziplineio.handler import Handler
 from ziplineio.models import ASGIScope
-from ziplineio.exception import BaseHttpException
-from ziplineio import settings
 
 
 async def call_handler(
@@ -23,21 +21,12 @@ async def call_handler(
 
     except Exception as e:
         response = e
-        print("EXCEPTION")
-        print(e)
-    # except Exception as e:
-    #     print(e)
-    #     response = BaseHttpException(e, 500)
-
-    print(f"response in call handler: {response}")
 
     return response
 
 
 def parse_scope(scope: ASGIScope) -> Request:
     query_string = scope["query_string"].decode("utf-8")
-
-    print(f"query_string: {query_string}")
 
     if query_string == "":
         query_params = {}

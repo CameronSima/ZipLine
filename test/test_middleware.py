@@ -83,7 +83,7 @@ class TestMiddleware(unittest.IsolatedAsyncioTestCase):
 
         # Call the route
         handler, params = self.app._router.get_handler("GET", "/with-middleware")
-        response = await call_handler(handler, req, format=True)
+        response = await call_handler(handler, req)
         response = format_response(response, settings.DEFAULT_HEADERS)
 
         print(f"response: {response}")
@@ -117,7 +117,7 @@ class TestMiddleware(unittest.IsolatedAsyncioTestCase):
 
         # Call the route
         handler, params = self.app._router.get_handler("GET", "/with-middleware")
-        response = await call_handler(handler, req, format=False)
+        response = await call_handler(handler, req)
 
         print(response)
 
