@@ -1,9 +1,13 @@
+from operator import call
+from os import name
 import unittest
 
 from ziplineio.app import App
 from ziplineio.router import Router
 from ziplineio.dependency_injector import DependencyInjector, inject
 import ziplineio.dependency_injector
+from ziplineio.service import Service
+from ziplineio.utils import call_handler
 
 
 class MockService:
@@ -122,3 +126,29 @@ class TestDependencyInjection(unittest.IsolatedAsyncioTestCase):
         handler, params = router.get_handler("GET", "/")
         response = await handler({})
         self.assertEqual(response["message"], "Service")
+
+    async def test_inject_service_into_service(self):
+        # Define a service to inject
+        class Service1(Service):
+            def __init__(self, **kwargs):
+                self.name = "service1"
+                self.value = "Service 1"
+
+        # Define a service that depends on Service1
+        class Service2(Service):
+            def __init__(self, service1: Service1):
+                self.name = "service2"
+                self.value = service1.value
+
+        self.ziplineio.inject([Service1, Service2])
+
+        @self.ziplineio.get("/")
+        async def test_handler(req, service1: Service1):
+            return {"message": service1.value}
+
+        # Call the handler
+        handler, params = self.ziplineio.get_handler("GET", "/")
+        print(self.ziplineio._injector._injected_services)
+        response = await call_handler(handler, {})
+        print(response)
+        self.assertEqual(response["message"], "Service 1")

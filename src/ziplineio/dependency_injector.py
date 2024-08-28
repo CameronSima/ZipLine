@@ -1,5 +1,6 @@
 from typing import Any, Callable
 from ziplineio.request import Request
+from ziplineio.service import Service, is_service_class
 
 
 # Injected services is a dictionary that stores the services that are injected.
@@ -50,15 +51,38 @@ class DependencyInjector:
 
         services = self._injected_services[scope]
 
-        if service_name in services:
-            instance = services[service_name]
-        elif isinstance(service_class, type):
-            instance = service_class()
-        else:
-            instance = service_class
+        # Check if the service class is a subclass of `Service`
+        if is_service_class(service_class):
+            services_in_scope = self.get_injected_services(scope)
 
-        services[service_name] = instance
-        return instance, service_name
+            # Prepare dependencies for the current service instance
+            service_kwargs = {
+                name: service
+                for name, service in services_in_scope.items()
+                if isinstance(service, Service)
+            }
+
+            # Create a new instance of the service
+            instance = service_class(**service_kwargs)
+            services[service_name] = instance
+
+            # Inject this service instance into all other services within the scope
+            for _name, service in services_in_scope.items():
+                if isinstance(service, Service):
+                    setattr(service, service_name, instance)
+
+            return instance, service_name
+        else:
+            # Handle services that are not subclasses of `Service`
+            if service_name in services:
+                instance = services[service_name]
+            elif isinstance(service_class, type):
+                instance = service_class()
+            else:
+                instance = service_class
+
+            services[service_name] = instance
+            return instance, service_name
 
     def get_injected_services(self, scope: str = "func") -> dict[str, Any]:
         if scope not in self._injected_services:

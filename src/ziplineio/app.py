@@ -1,4 +1,5 @@
 from ast import Not
+import inspect
 from typing import Any, Callable, List, Tuple, Type
 
 
@@ -38,19 +39,36 @@ class App:
         return self._router.delete(path)
 
     def get_handler(self, method: str, path: str) -> Tuple[Handler, dict]:
-        app_level_deps = self._injector._injected_services["app"]
+        app_level_deps = self._injector.get_injected_services("app")
         handler, params = self._router.get_handler(method, path)
 
+        if handler is None:
+            return None, {}
+
         # TODO: Inject deps when added to the router, not here
-        # inject app-level dependencies into the handler
+        # inject app-level dependencies into the handler if the
+        # handler expects them in its signature
+        sig = inspect.signature(handler)
+
+        filtered_kwargs_names = [
+            name
+            for name, param in sig.parameters.items()
+            if param.default == inspect.Parameter.empty
+        ]
+
         for name, service in app_level_deps.items():
-            handler = inject(service, name)(handler)
+            if name in filtered_kwargs_names:
+                handler = inject(service, name)(handler)
 
         return handler, params
 
     def inject(
         self, service_class: Type, name: str = None
     ) -> Callable[[Callable], Callable]:
+        if isinstance(service_class, list):
+            for service in service_class:
+                self._injector.add_injected_service(service, name, "app")
+            return None
         return self._injector.add_injected_service(service_class, name, "app")
 
     def middleware(self, middlewares: List[Callable]) -> None:
@@ -68,7 +86,6 @@ class App:
 
                 if handler is None:
                     # try running through middlewares
-
                     req, ctx, res = await run_middleware_stack(
                         self._router._router_level_middelwares, req, **{}
                     )
