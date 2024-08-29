@@ -116,12 +116,14 @@ async def home(request, user_service: UserService, logger: LoggingService):
 
 Services can be any class, but Zipline includes a special `Service` class. Classes that inherit from `Service` have the ability to access all other services in their scope.
 
+Classes that inherit from `Service` are expected to have a property `name` attribute, which is used to identify the service in the dependency injection container. Otherwise, they can be referenced by their class name (like with the `@inject` decorator).
+
 ```python
-from zipline import ZipLine, Service, inject
+from zipline import ZipLine, Service
 
 class LoggingService(Service):
     def __init__(self):
-        self.name "logger"
+        self.name = "logger"
 
     def error(self, message):
         print(f"Error! {message}")
@@ -153,7 +155,7 @@ app = ZipLine()
 app.inject([LoggingService, DBService, UserService])
 
 @app.route("/user/:id")
-async def get_user(request, user_service: UserService):
+async def get_user(request):
     user_id = request.path_params.get("id")
     return user_service.get_user(user_id)
 ```
