@@ -1,5 +1,3 @@
-from operator import call
-from os import name
 import unittest
 
 from ziplineio.app import App

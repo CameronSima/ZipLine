@@ -44,8 +44,10 @@ Middleware functions are called in the order they are added to the stack, and pa
 
 The first handler in the stack to return something other than a `Request` object (including `Exception`) will short-circuit the stack and return the response.
 
+Middleware can be can be applied at the application, router, or individual route level.
+
 ```python
-from zipline import ZipLine, middleware
+from zipline import ZipLine, Router, middleware
 
 
 # middleware functions
@@ -60,21 +62,31 @@ def auth_guard(request, ctx):
     if not ctx.get("is_authed"):
         raise Exception("Unauthorized")
 
+def is_user_guard(request, ctx):
+    if ctx.get("user_id") != request.path_params.get("id"):
+        raise Exception("Forbidden")
+
 
 app = ZipLine()
 
+
 # apply middleware to all routes
-app.middleware(auth_middleware)
+app.middleware([auth_middleware])
+
+user_router = Router("/user")
+
+# apply middleware at the router-level
+user_router.middleware([auth_guard])
 
 @app.get("/profile")
-@middleware([auth_guard])
+@middleware([is_user_guard]) # apply middleware to one router
 async def user_profile(request):
     return "Hello, World!"
 ```
 
 ## Dependency Injection
 
-Like with middeleware, ZipLine supports dependency injection at the route, router, or application level. Dependencies are passed to the handler function as keyword arguments.
+Like with middeleware, ZipLine supports dependency injection at the route, router, or application level. In addition, dependencies can be injected into other dependencies. Dependencies are passed to the handler function as keyword arguments.
 
 ```python
 from zipline import ZipLine, inject
@@ -100,6 +112,50 @@ app.inject(LoggingService)
 async def home(request, user_service: UserService, logger: LoggingService):
     logger.log_request(request)
     return user_service.get_user()
+```
+
+Services can be any class, but Zipline includes a special `Service` class. Classes that inherit from `Service` have the ability to access all other services in their scope.
+
+```python
+from zipline import ZipLine, Service, inject
+
+class LoggingService(Service):
+    def __init__(self):
+        self.name "logger"
+
+    def error(self, message):
+        print(f"Error! {message}")
+
+class DBService(Service):
+    def __init__(self, logger: LoggingService):
+        self.name = "db_service"
+
+    def get_connection(self):
+        try:
+            return db.connect()
+        except Exception as e:
+            self.logger.error(e)
+
+class UserService(Service):
+    def __init__(self, db_service: DBService, logger: LoggingService):
+        self.name = "user_service"
+
+    def get_user(id: str):
+        conn = self.db_service.get_connection()
+         try:
+            return conn.query("SELECT * FROM users WHERE id = ?", id)
+        except Exception as e:
+            self.logger.error(f"User {id} not found")
+
+
+app = ZipLine()
+# inject all services; order doesn't matter
+app.inject([LoggingService, DBService, UserService])
+
+@app.route("/user/:id")
+async def get_user(request, user_service: UserService):
+    user_id = request.path_params.get("id")
+    return user_service.get_user(user_id)
 ```
 
 ## Routing

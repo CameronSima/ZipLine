@@ -1,4 +1,3 @@
-from ast import Not
 import inspect
 from typing import Any, Callable, List, Tuple, Type
 
@@ -77,31 +76,33 @@ class App:
     def static(self, path: str, path_prefix: str = "/static") -> None:
         self.middleware([staticfiles(path, path_prefix)])
 
+    async def _get_and_call_handler(
+        self, method: str, path: str, req: Request
+    ) -> Callable:
+        handler, path_params = self.get_handler(method, path)
+        req.path_params = path_params
+
+        if handler is None:
+            # try running through middlewares
+            req, ctx, res = await run_middleware_stack(
+                self._router._router_level_middelwares, req, **{}
+            )
+
+            if res is None:
+                response = NotFoundHttpException()
+            else:
+                response = res
+
+        else:
+            response = await call_handler(handler, req)
+        return response
+
     def __call__(self, *args: Any, **kwds: Any) -> Any:
         async def uvicorn_handler(scope: dict, receive: Any, send: Any) -> None:
             if scope["type"] == "http":
                 req = parse_scope(scope)
-                handler, path_params = self.get_handler(req.method, req.path)
-                req.path_params = path_params
-
-                if handler is None:
-                    # try running through middlewares
-                    req, ctx, res = await run_middleware_stack(
-                        self._router._router_level_middelwares, req, **{}
-                    )
-
-                    if res is None:
-                        response = NotFoundHttpException()
-                    else:
-                        response = res
-
-                else:
-                    response = await call_handler(handler, req)
-
+                response = await self._get_and_call_handler(req.method, req.path, req)
                 raw_response = format_response(response, settings.DEFAULT_HEADERS)
-
-                print("SENDING RESPONSE")
-                print(raw_response)
 
                 await send(
                     {
