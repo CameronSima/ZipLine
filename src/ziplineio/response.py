@@ -47,9 +47,6 @@ def format_headers(headers: Dict[str, str] | None) -> List[Tuple[bytes, bytes]]:
 
 
 def format_body(body: bytes | str | dict) -> bytes:
-    print("BODY:")
-    print(body)
-    print(type(body))
     if isinstance(body, bytes):
         return body
     elif isinstance(body, str):
@@ -62,8 +59,6 @@ def format_body(body: bytes | str | dict) -> bytes:
 def format_response(
     response: bytes | dict | str | Response | Exception, default_headers: dict[str, str]
 ) -> RawResponse:
-    print("TYUUPE:")
-    print(type(response))
     if isinstance(response, bytes):
         raw_response = {
             "headers": [

@@ -36,11 +36,7 @@ async def run_middleware_stack(
         if "ctx" not in kwargs:
             kwargs["ctx"] = {}
 
-        sig = inspect.signature(middleware)
-        if len(sig.parameters) > 1:
-            _res = await call_handler(middleware, request, **kwargs)
-        else:
-            _res = await call_handler(middleware, request)
+        _res = await call_handler(middleware, request, **kwargs)
 
         # regular handlers return a response, but middleware can return a tuple
         if not isinstance(_res, tuple):

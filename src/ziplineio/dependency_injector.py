@@ -1,3 +1,4 @@
+import inspect
 from typing import Any, Callable
 from ziplineio.request import Request
 from ziplineio.service import Service, is_service_class
@@ -44,22 +45,28 @@ class DependencyInjector:
     def add_injected_service(
         self, service_class: Any, name: str = None, scope: str = "func"
     ) -> None:
-        service_name = name if name else service_class.__name__.lower()
-
         if scope not in self._injected_services:
             self._injected_services[scope] = {}
+
+        if name:
+            service_name = name
+        elif hasattr(service_class, "name"):
+            service_name = service_class.name
+        else:
+            service_name = service_class.__name__.lower()
 
         services = self._injected_services[scope]
 
         # Check if the service class is a subclass of `Service`
         if is_service_class(service_class):
+            sig = inspect.signature(service_class.__init__)
             services_in_scope = self.get_injected_services(scope)
 
             # Prepare dependencies for the current service instance
             service_kwargs = {
                 name: service
                 for name, service in services_in_scope.items()
-                if isinstance(service, Service)
+                if isinstance(service, Service) and name in sig.parameters
             }
 
             # Create a new instance of the service
@@ -69,7 +76,9 @@ class DependencyInjector:
             # Inject this service instance into all other services within the scope
             for _name, service in services_in_scope.items():
                 if isinstance(service, Service):
-                    setattr(service, service_name, instance)
+                    sig = inspect.signature(service.__init__)
+                    if service_name in sig.parameters:
+                        setattr(service, service_name, instance)
 
             return instance, service_name
         else:

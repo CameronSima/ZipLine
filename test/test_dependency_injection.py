@@ -146,7 +146,7 @@ class TestDependencyInjection(unittest.IsolatedAsyncioTestCase):
 
         # Call the handler
         handler, params = self.ziplineio.get_handler("GET", "/")
-        print(self.ziplineio._injector._injected_services)
+
         response = await call_handler(handler, {})
-        print(response)
+
         self.assertEqual(response["message"], "Service 1")

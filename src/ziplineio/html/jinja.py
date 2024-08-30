@@ -10,11 +10,11 @@ def jinja(env: Any, template_name: str):
     def decorator(handler):
         async def wrapped_handler(req, **kwargs):
             # Pass all arguments directly to the handler
-            sig = inspect.signature(handler)
-            print(f"sig: {sig}")
+            # sig = inspect.signature(handler)
+
             # Filter kwargs to only pass those that the handler expects
-            filtered_kwargs = {k: v for k, v in kwargs.items() if k in sig.parameters}
-            context = await call_handler(handler, req, **filtered_kwargs)
+            # filtered_kwargs = {k: v for k, v in kwargs.items() if k in sig.parameters}
+            context = await call_handler(handler, req, **kwargs)
             rendered = template.render(context)
             return JinjaResponse(rendered)
 

@@ -56,7 +56,7 @@ class App:
         ]
 
         for name, service in app_level_deps.items():
-            if name in filtered_kwargs_names:
+            if "kwargs" in sig.parameters.keys() or name in filtered_kwargs_names:
                 handler = inject(service, name)(handler)
 
         return handler, params
@@ -79,23 +79,22 @@ class App:
     async def _get_and_call_handler(
         self, method: str, path: str, req: Request
     ) -> Callable:
+        # Retrieve the handler and path parameters for the given method and path
         handler, path_params = self.get_handler(method, path)
         req.path_params = path_params
 
-        if handler is None:
-            # try running through middlewares
-            req, ctx, res = await run_middleware_stack(
-                self._router._router_level_middelwares, req, **{}
-            )
+        if handler is not None:
+            # If a handler is found, call it with the request
+            return await call_handler(handler, req)
 
-            if res is None:
-                response = NotFoundHttpException()
-            else:
-                response = res
+        # If no handler was found, attempt to run middlewares.
+        # (If a handler was found, middlewares will be run by `call_handler`)
+        req, ctx, res = await run_middleware_stack(
+            self._router._router_level_middelwares, req
+        )
 
-        else:
-            response = await call_handler(handler, req)
-        return response
+        # If middleware does not provide a response, return a 404 Not Found
+        return res if res is not None else NotFoundHttpException()
 
     def __call__(self, *args: Any, **kwds: Any) -> Any:
         async def uvicorn_handler(scope: dict, receive: Any, send: Any) -> None:

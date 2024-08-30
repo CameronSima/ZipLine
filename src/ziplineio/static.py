@@ -15,7 +15,6 @@ def _get_headers(filename: str) -> dict[str, str]:
 
 def staticfiles(filepath: str, path_prefix: str):
     async def handler(req, ctx):
-        print(f"Request path: {req.path}")
         if req.path.startswith(path_prefix):
             # remove path prefix
             _filepath = path.join(filepath, req.path[len(path_prefix) :])

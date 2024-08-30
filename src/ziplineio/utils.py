@@ -8,16 +8,27 @@ from ziplineio.handler import Handler
 from ziplineio.models import ASGIScope
 
 
+def get_func_params(func: Handler):
+    return inspect.signature(func).parameters
+
+
+def get_class_params(cls):
+    return inspect.signature(cls.__init__).parameters
+
+
 async def call_handler(
     handler: Handler,
     req: Request,
     **kwargs,
 ) -> bytes | str | dict | Response | Exception:
     try:
+        kwargs = {"req": req, **kwargs}
+        params = inspect.signature(handler).parameters
+        kwargs = {k: v for k, v in kwargs.items() if k in params}
         if not inspect.iscoroutinefunction(handler):
-            response = await asyncio.to_thread(handler, req, **kwargs)
+            response = await asyncio.to_thread(handler, **kwargs)
         else:
-            response = await handler(req, **kwargs)
+            response = await handler(**kwargs)
 
     except Exception as e:
         response = e
