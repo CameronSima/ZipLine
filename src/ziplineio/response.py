@@ -55,8 +55,8 @@ class JinjaResponse(Response):
 
 
 class NotFoundResponse(Response):
-    def __init__(self, body: str):
-        super().__init__(404, {}, body)
+    def __init__(self, body: str, headers: Dict[str, str] = {}):
+        super().__init__(404, headers, body)
 
 
 def format_headers(headers: Dict[str, str] | None) -> List[Tuple[bytes, bytes]]:

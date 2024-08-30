@@ -9,7 +9,7 @@ from ziplineio.dependency_injector import inject, injector, DependencyInjector
 from ziplineio import settings
 from ziplineio.handler import Handler
 from ziplineio.request import Request
-from ziplineio.response import NotFoundResponse, format_response
+from ziplineio.response import Response, NotFoundResponse, format_response
 from ziplineio.router import Router
 from ziplineio.static import staticfiles
 from ziplineio.utils import call_handler, parse_scope
@@ -103,8 +103,9 @@ class App:
             return res
 
         if self._router._not_found_handler:
-            body = await call_handler(self._router._not_found_handler, req)
-            return NotFoundResponse(body)
+            response = await call_handler(self._router._not_found_handler, req)
+            headers = isinstance(response, Response) and response._headers or {}
+            return NotFoundResponse(response, headers)
 
         return NotFoundHttpException()
 
@@ -131,42 +132,3 @@ class App:
                 )
 
         return uvicorn_handler
-
-
-app = App()
-
-
-async def logging_middleware(req: Request) -> Tuple[Request, dict]:
-    print(f"Received request: {req.method} {req.path}")
-    # Pass along request and an empty context (no modifications)
-    return req, {}
-
-
-async def auth_middleware(req: Request) -> Tuple[Request, dict]:
-    # Modify the context with some auth information
-    return req, {"auth": "Unauthorized"}
-
-
-class LoggingService:
-    def log(self, message: str) -> None:
-        print(f"Logging: {message}")
-
-
-@app.get("/")
-@inject(LoggingService)
-@middleware([logging_middleware, auth_middleware])
-async def handler(req: Request, ctx: dict, LoggingService: LoggingService) -> dict:
-    res = {"message": "Hello, world!"}
-
-    # Use the injected LoggingService
-    LoggingService.log(f"Params: {req.query_params.get('bar')}")
-
-    return {**res, **ctx}
-
-
-@app.get("/foo/:bar")
-async def handler2(req: Request) -> dict:
-    bar = req.path_params.get("bar")
-    res = {"message": f"Hello, {bar}!"}
-
-    return res

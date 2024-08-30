@@ -111,6 +111,7 @@ class TestE2E(unittest.IsolatedAsyncioTestCase):
         response = requests.get("http://localhost:5050/some-random-route")
         self.assertEqual(response.status_code, 404)
         self.assertTrue("404" in response.text)
+        self.assertEqual(response.headers["Content-Type"], "text/html")
 
     async def asyncTearDown(self):
         self.proc.terminate()
