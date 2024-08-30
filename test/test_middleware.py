@@ -86,8 +86,6 @@ class TestMiddleware(unittest.IsolatedAsyncioTestCase):
         response = await call_handler(handler, req)
         response = format_response(response, settings.DEFAULT_HEADERS)
 
-        print(f"response: {response}")
-
         # Assertions
         self.assertEqual(response["status"], 500)
         self.assertEqual(
@@ -118,8 +116,6 @@ class TestMiddleware(unittest.IsolatedAsyncioTestCase):
         # Call the route
         handler, params = self.app._router.get_handler("GET", "/with-middleware")
         response = await call_handler(handler, req)
-
-        print(response)
 
         # Assertions
         self.assertEqual(response["message"], "Hi from middleware 2")

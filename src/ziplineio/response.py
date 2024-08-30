@@ -14,12 +14,26 @@ class RawResponse(TypedDict):
 class Response:
     def __init__(self, status: int, headers: Dict[str, str], body: str):
         self.status = status
-        self.headers = headers
+        self._headers = headers
         self.body = body
 
     status: int
-    headers: Dict[str, str]
+    _headers: Dict[str, str]
     body: str
+
+    # If content-type is not provided, infer content-type from the body
+    def get_headers(self) -> Dict[str, str]:
+        headers = self._headers.copy()
+        if "Content-Type" not in headers:
+            if isinstance(self.body, bytes):
+                headers["Content-Type"] = "text/plain"
+            elif isinstance(self.body, str):
+                headers["Content-Type"] = "text/html"
+            elif isinstance(self.body, dict):
+                headers["Content-Type"] = "application/json"
+            else:
+                headers["Content-Type"] = "text/plain"
+        return headers
 
     def __len__(self) -> int:
         return 1
@@ -40,6 +54,11 @@ class JinjaResponse(Response):
         super().__init__(200, {"Content-Type": "text/html"}, body)
 
 
+class NotFoundResponse(Response):
+    def __init__(self, body: str):
+        super().__init__(404, {}, body)
+
+
 def format_headers(headers: Dict[str, str] | None) -> List[Tuple[bytes, bytes]]:
     if headers is None:
         return []
@@ -53,6 +72,8 @@ def format_body(body: bytes | str | dict) -> bytes:
         return bytes(body, "utf-8")
     elif isinstance(body, dict):
         return bytes(json.dumps(body), "utf-8")
+    elif isinstance(body, Response):
+        return format_body(body.body)
     raise ValueError("Invalid body type")
 
 
@@ -85,7 +106,7 @@ def format_response(
         }
     elif isinstance(response, Response):
         raw_response = {
-            "headers": format_headers(response.headers),
+            "headers": format_headers(response.get_headers()),
             "status": response.status,
             "body": format_body(response.body),
         }

@@ -11,6 +11,7 @@ class Router:
     _id: str
     _handlers: Dict[str, Dict[str, Callable]]
     _router_level_middelwares: List[Handler]
+    _not_found_handler: Handler
     _sub_routers: Dict[str, "Router"]
     _prefix: str
     _injector: DependencyInjector
@@ -19,6 +20,7 @@ class Router:
         self._id = str(uuid.uuid4())
         self._handlers = {"GET": {}, "POST": {}, "PUT": {}, "DELETE": {}}
         self._router_level_middelwares = []
+        self._not_found_handler = None
         self._sub_routers = {}
         self._prefix = prefix.rstrip("/")
         self._injector = injector
@@ -63,6 +65,9 @@ class Router:
 
     def delete(self, path: str) -> Callable[[Callable], Callable]:
         return self.route("DELETE", path)
+
+    def not_found(self, handler: Handler) -> None:
+        self._not_found_handler = handler
 
     def add_sub_router(self, prefix: str, sub_router: "Router") -> None:
         self._sub_routers[prefix.rstrip("/")] = sub_router

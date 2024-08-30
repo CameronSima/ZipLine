@@ -1,4 +1,5 @@
 import inspect
+import re
 from typing import Any, Callable, List, Tuple, Type
 
 
@@ -8,7 +9,7 @@ from ziplineio.dependency_injector import inject, injector, DependencyInjector
 from ziplineio import settings
 from ziplineio.handler import Handler
 from ziplineio.request import Request
-from ziplineio.response import format_response
+from ziplineio.response import NotFoundResponse, format_response
 from ziplineio.router import Router
 from ziplineio.static import staticfiles
 from ziplineio.utils import call_handler, parse_scope
@@ -36,6 +37,9 @@ class App:
 
     def delete(self, path: str) -> Callable[[Handler], Callable]:
         return self._router.delete(path)
+
+    def not_found(self, handler: Handler) -> None:
+        self._router.not_found(handler)
 
     def get_handler(self, method: str, path: str) -> Tuple[Handler, dict]:
         app_level_deps = self._injector.get_injected_services("app")
@@ -94,7 +98,15 @@ class App:
         )
 
         # If middleware does not provide a response, return a 404 Not Found
-        return res if res is not None else NotFoundHttpException()
+        # return res if res is not None else NotFoundHttpException()
+        if res is not None:
+            return res
+
+        if self._router._not_found_handler:
+            body = await call_handler(self._router._not_found_handler, req)
+            return NotFoundResponse(body)
+
+        return NotFoundHttpException()
 
     def __call__(self, *args: Any, **kwds: Any) -> Any:
         async def uvicorn_handler(scope: dict, receive: Any, send: Any) -> None:

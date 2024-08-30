@@ -35,7 +35,6 @@ class TestResponse(unittest.IsolatedAsyncioTestCase):
         self.assertEqual(r.status_code, 200)
         self.assertEqual(r.headers["Content-Type"], "text/css")
         self.assertTrue("background-color: #f0f0f0;" in r.text)
-        print(r.content)
 
     async def asyncTearDown(self):
         self.proc.terminate()

@@ -66,6 +66,12 @@ async def user_handler(req):
     return {"message": f"User {req.path_params['id']} received"}
 
 
+@app.not_found
+@jinja(env, "404.html")
+def not_found():
+    return {"current_route": "404"}
+
+
 def run_server():
     uvicorn.run(app, port=5050)
 
@@ -82,9 +88,6 @@ class TestE2E(unittest.IsolatedAsyncioTestCase):
         self.assertEqual(response.status_code, 200)
         self.assertEqual(response.content, b"Hello, world!")
 
-        print("BYTES")
-        print(response.content)
-
     async def test_handler_returns_str(self):
         response = requests.get("http://localhost:5050/str")
         self.assertEqual(response.status_code, 200)
@@ -99,14 +102,15 @@ class TestE2E(unittest.IsolatedAsyncioTestCase):
         response = requests.get("http://localhost:5050/sync-thread")
         self.assertEqual(response.status_code, 200)
 
-    async def test_404(self):
-        response = requests.get("http://localhost:5050/some-random-route")
-        self.assertEqual(response.status_code, 404)
-
     async def test_jinja(self):
         response = requests.get("http://localhost:5050/jinja")
         self.assertEqual(response.status_code, 200)
         self.assertTrue("service1 content" in response.text)
+
+    async def test_404_jinja(self):
+        response = requests.get("http://localhost:5050/some-random-route")
+        self.assertEqual(response.status_code, 404)
+        self.assertTrue("404" in response.text)
 
     async def asyncTearDown(self):
         self.proc.terminate()
