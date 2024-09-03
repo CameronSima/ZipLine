@@ -122,15 +122,16 @@ Classes that inherit from `Service` are expected to have a property `name` attri
 from zipline import ZipLine, Service
 
 class LoggingService(Service):
-    def __init__(self):
-        self.name = "logger"
+    name = "logger"
 
     def error(self, message):
         print(f"Error! {message}")
 
 class DBService(Service):
+    name = "db_service"
+
     def __init__(self, logger: LoggingService):
-        self.name = "db_service"
+        self.logger = logger
 
     def get_connection(self):
         try:
@@ -139,8 +140,11 @@ class DBService(Service):
             self.logger.error(e)
 
 class UserService(Service):
+    name = "user_service"
+
     def __init__(self, db_service: DBService, logger: LoggingService):
-        self.name = "user_service"
+        self.db_service = db_service
+        self.logger = logger
 
     def get_user(id: str):
         conn = self.db_service.get_connection()
