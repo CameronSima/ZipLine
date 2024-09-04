@@ -2,6 +2,8 @@ import re
 import inspect
 import asyncio
 from typing import Dict
+
+from httpx import request
 from ziplineio.request import Request
 from ziplineio.response import Response
 from ziplineio.handler import Handler
@@ -18,11 +20,15 @@ def get_class_params(cls):
 
 async def call_handler(
     handler: Handler,
-    req: Request,
     **kwargs,
 ) -> bytes | str | dict | Response | Exception:
     try:
-        kwargs = {"req": req, **kwargs}
+        print("KWARGS IN CALL HANDLER", kwargs)
+
+        # kwargs = {"req": req, **kwargs}
+        if "req" not in kwargs:
+            raise ValueError("Request object not found in kwargs")
+
         params = inspect.signature(handler).parameters
         kwargs = {k: v for k, v in kwargs.items() if k in params}
         if not inspect.iscoroutinefunction(handler):

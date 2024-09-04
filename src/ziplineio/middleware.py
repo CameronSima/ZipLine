@@ -1,6 +1,5 @@
-import inspect
 from typing import List, Callable, Tuple
-from ziplineio import response
+
 from ziplineio.handler import Handler
 from ziplineio.request import Request
 from ziplineio.response import Response
@@ -15,7 +14,9 @@ def middleware(middlewares: List[Callable]) -> Callable[[Callable], Callable]:
             kwargs.setdefault("ctx", {})
             # Run the middleware stack
 
-            req, kwargs, res = await run_middleware_stack(middlewares, req, **kwargs)
+            req, kwargs, res = await run_middleware_stack(
+                middlewares, req=req, **kwargs
+            )
 
             if res is not None:
                 return res
@@ -28,7 +29,7 @@ def middleware(middlewares: List[Callable]) -> Callable[[Callable], Callable]:
 
 
 async def run_middleware_stack(
-    middlewares: list[Handler], request: Request, **kwargs
+    middlewares: list[Handler], req: Request, **kwargs
 ) -> Tuple[Request, dict, bytes | str | dict | Response | None]:
     for middleware in middlewares:
         # if the middleware func takes params, pass them in. Otherwise, just pass req
@@ -36,7 +37,7 @@ async def run_middleware_stack(
         if "ctx" not in kwargs:
             kwargs["ctx"] = {}
 
-        _res = await call_handler(middleware, request, **kwargs)
+        _res = await call_handler(middleware, req=req, **kwargs)
 
         # regular handlers return a response, but middleware can return a tuple
         if not isinstance(_res, tuple):
@@ -51,6 +52,6 @@ async def run_middleware_stack(
 
         if not isinstance(req, Request):
             response = req
-            return request, kwargs, response
+            return req, kwargs, response
 
-    return request, kwargs, None
+    return req, kwargs, None

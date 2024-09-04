@@ -19,7 +19,7 @@ class TestExceptions(unittest.IsolatedAsyncioTestCase):
             raise BaseHttpException("Hey! We messed up", 409)
 
         # Call the handler
-        response = await call_handler(test_handler, {})
+        response = await call_handler(test_handler, req={})
         response = format_response(response, settings.DEFAULT_HEADERS)
         self.assertEqual(response["body"], b"Hey! We messed up")
         self.assertEqual(response["status"], 409)
@@ -33,7 +33,7 @@ class TestExceptions(unittest.IsolatedAsyncioTestCase):
             raise CustomHttpException("Hey! We messed up bad", 402)
 
         # Call the handler
-        response = await call_handler(test_handler, {})
+        response = await call_handler(test_handler, req={})
         response = format_response(response, settings.DEFAULT_HEADERS)
         self.assertEqual(response["body"], b"Hey! We messed up bad")
         self.assertEqual(response["status"], 402)
