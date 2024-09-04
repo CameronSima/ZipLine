@@ -1,3 +1,5 @@
+[![CI](https://github.com/CameronSima/ZipLine/actions/workflows/python-package.yml/badge.svg)](https://github.com/CameronSima/ZipLine/actions/workflows/python-package.yml) [![codecov](https://codecov.io/github/CameronSima/ZipLine/graph/badge.svg?token=HY9PD1NZ4E)](https://codecov.io/github/CameronSima/ZipLine)
+
 # ZipLine
 
 ZipLine is a simple asyncronous ASGI web framework for Python. It is designed to be simple and easy to use, while still being powerful and flexible.
