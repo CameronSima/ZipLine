@@ -4,6 +4,15 @@
 
 ZipLine is a simple asyncronous ASGI web framework for Python. It is designed to be simple and easy to use, while still being powerful and flexible.
 
+- [Quick Start](#quick-start)
+- [Handlers](#handlers)
+- [Middleware](#middleware)
+- [Dependency Injection](#dependency-injection)
+- [Routing](#routing)
+- [Validation](#validation)
+- [Static Files](#static-files)
+- [HTML Templates](#html-templates)
+
 ## Quick Start
 
 ```python
@@ -182,6 +191,95 @@ async def get_user(request):
     return f"User {request.path_params.get('id')}"
 
 app.router(user_router)
+```
+
+## Validation
+
+Zipline provides powerful decorators for validating query parameters and request bodies, ensuring your endpoints receive correctly formatted data. These decorators help you enforce data types, handle missing parameters, and validate against complex data structures.
+
+### Query Parameter Validation
+
+To validate query parameters, use the `@validate_query` decorator. You can specify each parameter you want to validate by creating a `QueryParam` instance, which includes the parameter name, expected type, and whether it is required.
+
+#### Example: Simple Query Parameter Validation
+
+```python
+from ziplineio.validation.query import QueryParam, validate_query
+from ziplineio.request import Request
+
+@app.get("/")
+@validate_query(QueryParam("username", str), QueryParam("age", float))
+async def get_user_handler(req: Request):
+    username = req.query_params.get("username")
+    age = req.query_params.get("age")
+    return {"username": username, "age": age}
+```
+
+In this example, the endpoint expects username to be a string and age to be a float. If the parameters are missing or of the wrong type, a validation error is returned.
+
+#### Example: Using Pydantic Models for Query Validation
+
+```python
+from pydantic import BaseModel
+from ziplineio.validation.query import QueryParam, validate_query
+
+class UserModel(BaseModel):
+    username: str
+    age: int
+
+@app.get("/")
+@validate_query(QueryParam("user", UserModel))
+async def get_user_handler(req: Request):
+    user = req.query_params.get("user")
+    return {"user": user.model_dump()}
+
+```
+
+#### Example: Simple Body Parameter Validation
+
+```python
+from ziplineio.validation.body import BodyParam, validate_body
+from ziplineio.request import Request
+
+@app.post("/")
+@validate_body(BodyParam("username", str), BodyParam("age", float))
+async def create_user_handler(req: Request):
+    username = req.body.get("username")
+    age = req.body.get("age")
+    return {"username": username, "age": age}
+
+```
+
+#### Example: Using Pydantic Models for Body Validation
+
+```python
+from pydantic import BaseModel
+from ziplineio.validation.body import BodyParam, validate_body
+
+class UserModel(BaseModel):
+    username: str
+    age: int
+
+@app.post("/")
+@validate_body(BodyParam("user", UserModel))
+async def create_user_handler(req: Request):
+    user = req.body.get("user")
+    return {"user": user.model_dump()}
+```
+
+#### Optional Parameters
+
+By default, all parameters are required. To make a parameter optional, set the `required` parameter to `False`.
+
+```python
+from ziplineio.validation.query import QueryParam, validate_query
+
+@app.get("/")
+@validate_query(QueryParam("username", str), QueryParam("age", float, required=False))
+async def get_user_handler(req: Request):
+    username = req.query_params.get("username")
+    age = req.query_params.get("age")
+    return {"username": username, "age": age}
 ```
 
 ## Static Files
