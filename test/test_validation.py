@@ -41,7 +41,9 @@ class TestValidateBody(unittest.IsolatedAsyncioTestCase):
         @validate_body(BodyParam("user", UserModel))
         async def create_user_handler(req: Request):
             user = req.body.get("user")
-            return {"user": user.dict()}  # Access the validated Pydantic model instance
+            return {
+                "user": user.model_dump()
+            }  # Access the validated Pydantic model instance
 
         req = Request(
             method="POST", path="/", body={"user": {"username": "John", "age": 30}}
@@ -133,7 +135,7 @@ class TestValidateQuery(unittest.IsolatedAsyncioTestCase):
         @validate_query(QueryParam("user", UserModel))
         async def create_user_handler(req: Request):
             user = req.query_params.get("user")
-            return {"user": user.dict()}
+            return {"user": user.model_dump()}
 
         req = Request(
             method="GET",
@@ -141,8 +143,6 @@ class TestValidateQuery(unittest.IsolatedAsyncioTestCase):
             query_params={"user": {"username": "John", "age": 30}},
         )
         response = await call_handler(create_user_handler, req=req)
-
-        print("response", response)
 
         self.assertEqual(response["user"], {"username": "John", "age": 30})
 
@@ -188,8 +188,6 @@ class TestValidateQuery(unittest.IsolatedAsyncioTestCase):
             method="GET", path="/", query_params={"username": "Amy", "age": "invalid"}
         )
         response = await call_handler(create_user_handler, req=req)
-
-        print("response", response)
 
         self.assertEqual(
             response,

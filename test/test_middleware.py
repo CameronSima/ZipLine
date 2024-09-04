@@ -1,4 +1,3 @@
-from operator import call
 import unittest
 from ziplineio import settings
 from ziplineio.request import Request

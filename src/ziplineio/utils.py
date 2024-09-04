@@ -23,9 +23,6 @@ async def call_handler(
     **kwargs,
 ) -> bytes | str | dict | Response | Exception:
     try:
-        print("KWARGS IN CALL HANDLER", kwargs)
-
-        # kwargs = {"req": req, **kwargs}
         if "req" not in kwargs:
             raise ValueError("Request object not found in kwargs")
 

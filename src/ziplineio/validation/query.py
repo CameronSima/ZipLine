@@ -49,8 +49,6 @@ def validate_query(*query_params):
                 request_param_name = param_name
                 break
 
-        print("request_param_name", request_param_name)
-
         if request_param_name is None:
             raise ValueError(
                 "Handler function must have a parameter of type `Request`."
@@ -58,11 +56,6 @@ def validate_query(*query_params):
 
         @wraps(handler)
         async def wrapper(*args, **kwargs):
-            # print("req", req)
-            print("args", args)
-
-            print("kwargs", kwargs)
-
             req = kwargs.get(request_param_name)
 
             errors = {}

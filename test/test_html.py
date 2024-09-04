@@ -1,42 +1,30 @@
-import asyncio
-from multiprocessing import Process
 import unittest
 
-import requests
-import uvicorn
+
 from jinja2 import Environment, PackageLoader, select_autoescape
 from ziplineio.app import App
+from ziplineio.request import Request
 
 from ziplineio.html.jinja import jinja
+from ziplineio.response import JinjaResponse
+
 
 env = Environment(loader=PackageLoader("test.mocks"), autoescape=select_autoescape())
 
-app = App()
-
-
-@app.get("/")
-@jinja(env, "home.html")
-def home(req):
-    return {"message": "Hello, world!"}
-
-
-def run_server():
-    uvicorn.run(app, port=5050)
-
 
 class TestHtml(unittest.IsolatedAsyncioTestCase):
-    async def asyncSetUp(self):
-        """Bring server up."""
-        self.proc = Process(target=run_server, args=(), daemon=False)
-        self.proc.start()
-        await asyncio.sleep(0.3)  # time for the server to start
+    def setUp(self):
+        self.app = App()
 
     async def test_render_jinja(self):
-        response = requests.get("http://localhost:5050/")
+        @self.app.get("/")
+        @jinja(env, "home.html")
+        def home(req):
+            return {"message": "Hello, world!"}
 
-        self.assertEqual(response.status_code, 200)
-        self.assertEqual(response.headers["Content-Type"], "text/html")
-        self.assertTrue("<p>Welcome to the home page!</p>" in response.text)
+        req = Request(method="GET", path="/")
+        response: JinjaResponse = await self.app._get_and_call_handler("GET", "/", req)
 
-    async def asyncTearDown(self):
-        self.proc.terminate()
+        self.assertEqual(response.status, 200)
+        self.assertEqual(response.get_headers()["Content-Type"], "text/html")
+        self.assertTrue("<p>Welcome to the home page!</p>" in response.body)
