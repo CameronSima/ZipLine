@@ -42,6 +42,23 @@ class TestApp(unittest.IsolatedAsyncioTestCase):
         # Assertions
         self.assertEqual(response["message"], "Hello, world!")
 
+    async def test_query_params(self):
+        # Mock request data
+        req = Request(method="GET", path="/")
+        req.query_params = {"bar": "baz"}
+
+        # Define a simple handler for testing
+        @self.app.get("/")
+        async def test_handler(req: Request, ctx: dict):
+            return {"message": req.query_params["bar"]}
+
+        # Call the route
+        handler, params = self.app._router.get_handler("GET", "/")
+        response = await handler(req, {})
+
+        # Assertions
+        self.assertEqual(response["message"], "baz")
+
     async def test_middleware_injection(self):
         # Mock request data
         req = Request(method="GET", path="/with-middleware")

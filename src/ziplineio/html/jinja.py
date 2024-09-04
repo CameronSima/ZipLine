@@ -14,7 +14,7 @@ def jinja(env: Any, template_name: str):
 
             # Filter kwargs to only pass those that the handler expects
             # filtered_kwargs = {k: v for k, v in kwargs.items() if k in sig.parameters}
-            context = await call_handler(handler, req, **kwargs)
+            context = await call_handler(handler, req=req, **kwargs)
             rendered = template.render(context)
             return JinjaResponse(rendered)
 

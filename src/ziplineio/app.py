@@ -4,7 +4,7 @@ from typing import Any, Callable, List, Tuple, Type
 
 
 from ziplineio.exception import NotFoundHttpException
-from ziplineio.middleware import middleware, run_middleware_stack
+from ziplineio.middleware import run_middleware_stack
 from ziplineio.dependency_injector import inject, injector, DependencyInjector
 from ziplineio import settings
 from ziplineio.handler import Handler
@@ -89,12 +89,12 @@ class App:
 
         if handler is not None:
             # If a handler is found, call it with the request
-            return await call_handler(handler, req)
+            return await call_handler(handler, req=req)
 
         # If no handler was found, attempt to run middlewares.
         # (If a handler was found, middlewares will be run by `call_handler`)
         req, ctx, res = await run_middleware_stack(
-            self._router._router_level_middelwares, req
+            self._router._router_level_middelwares, req=req
         )
 
         # If middleware does not provide a response, return a 404 Not Found
@@ -103,7 +103,7 @@ class App:
             return res
 
         if self._router._not_found_handler:
-            response = await call_handler(self._router._not_found_handler, req)
+            response = await call_handler(self._router._not_found_handler, req=req)
             headers = isinstance(response, Response) and response._headers or {}
             return NotFoundResponse(response, headers)
 

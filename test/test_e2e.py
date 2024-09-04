@@ -4,7 +4,6 @@ from jinja2 import Environment, PackageLoader, select_autoescape
 import requests
 import uvicorn
 import unittest
-import unittest.async_case
 
 
 from ziplineio.app import App
@@ -81,7 +80,19 @@ class TestE2E(unittest.IsolatedAsyncioTestCase):
         """Bring server up."""
         self.proc = Process(target=run_server, args=(), daemon=False)
         self.proc.start()
-        await asyncio.sleep(0.2)  # time for the server to start
+
+        # Wait for the server to be up
+        await self.wait_for_server()
+
+    async def wait_for_server(self):
+        """Wait for the server to be ready."""
+        while True:
+            try:
+                response = requests.get("http://localhost:5050/bytes")
+                if response.status_code == 200:
+                    break
+            except requests.ConnectionError:
+                await asyncio.sleep(0.1)  # Short sleep between retries
 
     async def test_handler_returns_bytes(self):
         response = requests.get("http://localhost:5050/bytes")
