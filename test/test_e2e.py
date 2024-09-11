@@ -1,7 +1,7 @@
 from multiprocessing import Process
 import asyncio
 from jinja2 import Environment, PackageLoader, select_autoescape
-import requests
+import httpx
 import uvicorn
 import unittest
 
@@ -78,51 +78,68 @@ def run_server():
 class TestE2E(unittest.IsolatedAsyncioTestCase):
     async def asyncSetUp(self):
         """Bring server up."""
-        self.proc = Process(target=run_server, args=(), daemon=False)
+        self.proc = Process(target=run_server, args=(), daemon=True)
         self.proc.start()
 
         # Wait for the server to be up
         await self.wait_for_server()
 
-    async def wait_for_server(self):
+    async def wait_for_server(self, timeout=30):
         """Wait for the server to be ready."""
-        while True:
-            try:
-                response = requests.get("http://localhost:5050/bytes")
-                if response.status_code == 200:
-                    break
-            except requests.ConnectionError:
-                await asyncio.sleep(0.1)  # Short sleep between retries
 
-    async def test_handler_returns_bytes(self):
-        response = requests.get("http://localhost:5050/bytes")
-        self.assertEqual(response.status_code, 200)
-        self.assertEqual(response.content, b"Hello, world!")
+        async def check_server():
+            async with httpx.AsyncClient() as client:
+                while True:
+                    try:
+                        response = await client.get("http://localhost:5050/bytes")
+                        if response.status_code == 200:
+                            return True
+                    except httpx.RequestError:
+                        pass
+                    await asyncio.sleep(0.2)  # Short sleep between retries
 
-    async def test_handler_returns_str(self):
-        response = requests.get("http://localhost:5050/str")
-        self.assertEqual(response.status_code, 200)
-        self.assertEqual(response.text, "Hello, world!")
-
-    async def test_handler_returns_dict(self):
-        response = requests.get("http://localhost:5050/dict")
-        self.assertEqual(response.status_code, 200)
-        self.assertEqual(response.json(), {"message": "Hello, world!"})
-
-    async def test_sync_route(self):
-        response = requests.get("http://localhost:5050/sync-thread")
-        self.assertEqual(response.status_code, 200)
-
-    async def test_jinja(self):
-        response = requests.get("http://localhost:5050/jinja")
-        self.assertEqual(response.status_code, 200)
-        self.assertTrue("service1 content" in response.text)
-
-    async def test_404_jinja(self):
-        response = requests.get("http://localhost:5050/some-random-route")
-        self.assertEqual(response.status_code, 404)
-        self.assertTrue("404" in response.text)
-        self.assertEqual(response.headers["Content-Type"], "text/html")
+        try:
+            await asyncio.wait_for(check_server(), timeout=timeout)
+        except asyncio.TimeoutError:
+            self.fail("Server did not start within the specified timeout")
 
     async def asyncTearDown(self):
         self.proc.terminate()
+        self.proc.join()
+
+    async def test_handler_returns_bytes(self):
+        async with httpx.AsyncClient() as client:
+            response = await client.get("http://localhost:5050/bytes")
+            self.assertEqual(response.status_code, 200)
+            self.assertEqual(response.content, b"Hello, world!")
+
+    async def test_handler_returns_str(self):
+        async with httpx.AsyncClient() as client:
+            response = await client.get("http://localhost:5050/str")
+            self.assertEqual(response.status_code, 200)
+            self.assertEqual(response.text, "Hello, world!")
+
+    async def test_handler_returns_dict(self):
+        async with httpx.AsyncClient() as client:
+            response = await client.get("http://localhost:5050/dict")
+            self.assertEqual(response.status_code, 200)
+            self.assertEqual(response.json(), {"message": "Hello, world!"})
+
+    async def test_sync_route(self):
+        async with httpx.AsyncClient() as client:
+            response = await client.get("http://localhost:5050/sync-thread")
+            self.assertEqual(response.status_code, 200)
+            self.assertEqual(response.json(), {"message": "Hello, sync world!"})
+
+    async def test_jinja(self):
+        async with httpx.AsyncClient() as client:
+            response = await client.get("http://localhost:5050/jinja")
+            self.assertEqual(response.status_code, 200)
+            self.assertTrue("service1 content" in response.text)
+
+    async def test_404_jinja(self):
+        async with httpx.AsyncClient() as client:
+            response = await client.get("http://localhost:5050/some-random-route")
+            self.assertEqual(response.status_code, 404)
+            self.assertTrue("404" in response.text)
+            self.assertEqual(response.headers["Content-Type"], "text/html")

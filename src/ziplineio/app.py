@@ -1,7 +1,5 @@
 import inspect
-import re
 from typing import Any, Callable, List, Tuple, Type
-
 
 from ziplineio.exception import NotFoundHttpException
 from ziplineio.middleware import run_middleware_stack
@@ -9,6 +7,7 @@ from ziplineio.dependency_injector import inject, injector, DependencyInjector
 from ziplineio import settings
 from ziplineio.handler import Handler
 from ziplineio.request import Request
+from ziplineio.request_context import set_request
 from ziplineio.response import Response, NotFoundResponse, format_response
 from ziplineio.router import Router
 from ziplineio.static import staticfiles
@@ -86,6 +85,9 @@ class App:
         # Retrieve the handler and path parameters for the given method and path
         handler, path_params = self.get_handler(method, path)
         req.path_params = path_params
+
+        # set request context
+        set_request(req)
 
         if handler is not None:
             # If a handler is found, call it with the request
