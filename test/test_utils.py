@@ -17,3 +17,19 @@ class TestUtils(unittest.TestCase):
 
         # Assertions
         self.assertEqual(parsed, {"id": "123"})
+
+    def test_parse_scope(self):
+        scope = {
+            "query_string": b"",
+            "path": "/user/12",
+            "headers": [(b"host", b"localhost")],
+            "method": "GET",
+        }
+        parsed = utils.parse_scope(scope)
+
+        # Assertions
+        self.assertEqual(parsed.method, "GET")
+        self.assertEqual(parsed.path, "/user/12")
+        self.assertEqual(parsed.query_params, {})
+        self.assertEqual(parsed.path_params, {})
+        self.assertEqual(parsed.headers, {"host": "localhost"})

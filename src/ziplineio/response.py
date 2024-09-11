@@ -80,54 +80,42 @@ def format_body(body: bytes | str | dict) -> bytes:
 def format_response(
     response: bytes | dict | str | Response | Exception, default_headers: dict[str, str]
 ) -> RawResponse:
+    # Helper to merge and deduplicate headers
+
+    # Format different response types
     if isinstance(response, bytes):
-        raw_response = {
-            "headers": [
-                (b"content-type", b"text/plain"),
-            ],
-            "status": 200,
-            "body": response,
-        }
+        headers = [(b"content-type", b"text/plain")]
+        body = response
+        status = 200
+
     elif isinstance(response, str):
-        raw_response = {
-            "headers": [
-                (b"content-type", b"text/plain"),
-            ],
-            "status": 200,
-            "body": bytes(response, "utf-8"),
-        }
+        headers = [(b"content-type", b"text/plain")]
+        body = response.encode("utf-8")
+        status = 200
+
     elif isinstance(response, dict):
-        raw_response = {
-            "headers": [
-                (b"content-type", b"application/json"),
-            ],
-            "status": 200,
-            "body": bytes(json.dumps(response), "utf-8"),
-        }
+        headers = [(b"content-type", b"application/json")]
+        body = json.dumps(response).encode("utf-8")
+        status = 200
+
     elif isinstance(response, Response):
-        raw_response = {
-            "headers": format_headers(response.get_headers()),
-            "status": response.status,
-            "body": format_body(response.body),
-        }
+        headers = format_headers(response.get_headers())
+        body = format_body(response.body)
+        status = response.status
+
     elif isinstance(response, BaseHttpException):
-        raw_response = {
-            "headers": [
-                (b"content-type", b"application/json"),
-            ],
-            "status": response.status_code,
-            "body": format_body(response.message),
-        }
+        headers = [(b"content-type", b"application/json")]
+        body = format_body(response.message)
+        status = response.status_code
+
     elif isinstance(response, Exception):
-        raw_response = {
-            "headers": [
-                (b"content-type", b"text/plain"),
-            ],
-            "status": 500,
-            "body": b"Internal server error: " + bytes(str(response), "utf-8"),
-        }
+        headers = [(b"content-type", b"text/plain")]
+        body = f"Internal server error: {str(response)}".encode("utf-8")
+        status = 500
+
     else:
         raise ValueError("Invalid response type")
 
-    raw_response["headers"].extend(format_headers(default_headers))
-    return raw_response
+    default_headers = format_headers(default_headers)
+
+    return {"headers": default_headers + headers, "status": status, "body": body}

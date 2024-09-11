@@ -96,7 +96,7 @@ class TestE2E(unittest.IsolatedAsyncioTestCase):
                             return True
                     except httpx.RequestError:
                         pass
-                    await asyncio.sleep(0.2)  # Short sleep between retries
+                    await asyncio.sleep(0.1)  # Short sleep between retries
 
         try:
             await asyncio.wait_for(check_server(), timeout=timeout)

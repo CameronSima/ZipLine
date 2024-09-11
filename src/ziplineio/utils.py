@@ -11,14 +11,6 @@ from ziplineio.handler import Handler
 from ziplineio.models import ASGIScope
 
 
-def get_func_params(func: Handler):
-    return inspect.signature(func).parameters
-
-
-def get_class_params(cls):
-    return inspect.signature(cls.__init__).parameters
-
-
 """
 Only pass the kwargs that are required by the handler function.
 """
