@@ -217,23 +217,7 @@ async def get_user_handler(req: Request):
 
 In this example, the endpoint expects username to be a string and age to be a float. If the parameters are missing or of the wrong type, a validation error is returned.
 
-#### Example: Using Pydantic Models for Query Validation
-
-```python
-from pydantic import BaseModel
-from ziplineio.validation.query import QueryParam, validate_query
-
-class UserModel(BaseModel):
-    username: str
-    age: int
-
-@app.get("/")
-@validate_query(QueryParam("user", UserModel))
-async def get_user_handler(req: Request):
-    user = req.query_params.get("user")
-    return {"user": user.model_dump()}
-
-```
+````
 
 #### Example: Simple Body Parameter Validation
 
@@ -248,7 +232,7 @@ async def create_user_handler(req: Request):
     age = req.body.get("age")
     return {"username": username, "age": age}
 
-```
+````
 
 #### Example: Using Pydantic Models for Body Validation
 
