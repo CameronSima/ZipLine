@@ -2,7 +2,7 @@ import unittest
 
 from ziplineio.app import App
 from ziplineio.exception import BaseHttpException
-from ziplineio.request import Request
+from ziplineio.request import Body, Request
 from ziplineio.response import (
     Response,
     StaticFileResponse,
@@ -28,7 +28,7 @@ class TestResponse(unittest.IsolatedAsyncioTestCase):
 
         self.assertEqual(r.status, 200)
         self.assertEqual(r.get_headers()["Content-Type"], "text/css")
-        self.assertTrue(b"background-color: #f0f0f0;" in r.body)
+        self.assertTrue("background-color: #f0f0f0;" in str(r.body))
 
 
 class TestFormatBody(unittest.TestCase):
@@ -74,7 +74,9 @@ class TestFormatResponse(unittest.TestCase):
         self.assertEqual(formatted["body"], b'{"message": "Hello, world!"}')
 
     def test_format_response_object(self):
-        response = Response(200, {"Content-Type": "CUSTOM-TYPE"}, "Hello, world!")
+        response = Response(
+            200, {"Content-Type": "CUSTOM-TYPE"}, Body.from_str("Hello, world!")
+        )
 
         formatted = format_response(response, {})
         self.assertEqual(formatted["status"], 200)

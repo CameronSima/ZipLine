@@ -21,7 +21,7 @@ def middleware(middlewares: List[Callable]) -> Callable[[Callable], Callable]:
             if res is not None:
                 return res
             else:
-                return await handler(req, **kwargs)
+                return await call_handler(handler, req=req, **kwargs)
 
         return wrapped_handler
 

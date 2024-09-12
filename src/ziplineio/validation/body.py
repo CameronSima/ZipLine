@@ -19,12 +19,13 @@ def validate_body(*body_params):
     def decorator(handler):
         @wraps(handler)
         async def wrapper(req: Request, *args, **kwargs):
+            body = req.body.json()
             errors = {}
             validated_body = {}
 
             for param in body_params:
                 param_name = param.param
-                value = req.body.get(param_name)
+                value = body.get(param_name)
                 if value is None:
                     if param.required:
                         errors[param_name] = "Missing required body parameter"

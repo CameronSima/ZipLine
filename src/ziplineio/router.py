@@ -1,6 +1,7 @@
 import re
 
 import uuid
+import inspect
 from typing import Any, Callable, Dict, List, Union
 from ziplineio.dependency_injector import DependencyInjector, inject, injector
 from ziplineio.handler import Handler
@@ -29,6 +30,10 @@ class Router:
         self._router_level_middelwares.extend(middlewares)
 
     def inject(self, service_class: Any, name: str = None) -> None:
+        if isinstance(service_class, list):
+            for service in service_class:
+                self._injector.add_injected_service(service, name, self._id)
+            return None
         self._injector.add_injected_service(service_class, name, self._id)
 
     def _convert_path_to_regex(self, path: str) -> str:
@@ -40,8 +45,17 @@ class Router:
             # inject router-level dependencies into the handler
             services = injector.get_injected_services(self._id)
 
+            sig = inspect.signature(handler)
+
+            filtered_kwargs_names = [
+                name
+                for name, param in sig.parameters.items()
+                if param.default == inspect.Parameter.empty
+            ]
+
             for name, service in services.items():
-                handler = inject(service, name)(handler)
+                if name in filtered_kwargs_names:
+                    handler = inject(service, name)(handler)
 
             # wrap the handler with router-level middlewares
             if len(self._router_level_middelwares) > 0:

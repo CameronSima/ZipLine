@@ -26,30 +26,39 @@ class App:
         self._router.add_sub_router(prefix, router)
 
     def get(self, path: str) -> Callable[[Handler], Callable]:
-        return self._router.get(path)
+        def decorator(handler: Handler) -> Callable:
+            wrapped_handler = self.app_services_wrapper(handler)
+            return self._router.get(path)(wrapped_handler)
+
+        return decorator
 
     def post(self, path: str) -> Callable[[Handler], Callable]:
-        return self._router.post(path)
+        # return self._router.post(path)
+        def decorator(handler: Handler) -> Callable:
+            wrapped_handler = self.app_services_wrapper(handler)
+            return self._router.post(path)(wrapped_handler)
+
+        return decorator
 
     def put(self, path: str) -> Callable[[Handler], Callable]:
-        return self._router.put(path)
+        def decorator(handler: Handler) -> Callable:
+            wrapped_handler = self.app_services_wrapper(handler)
+            return self._router.put(path)(wrapped_handler)
+
+        return decorator
 
     def delete(self, path: str) -> Callable[[Handler], Callable]:
-        return self._router.delete(path)
+        def decorator(handler: Handler) -> Callable:
+            wrapped_handler = self.app_services_wrapper(handler)
+            return self._router.delete(path)(wrapped_handler)
+
+        return decorator
 
     def not_found(self, handler: Handler) -> None:
         self._router.not_found(handler)
 
-    def get_handler(self, method: str, path: str) -> Tuple[Handler, dict]:
+    def app_services_wrapper(self, handler: Handler) -> Callable:
         app_level_deps = self._injector.get_injected_services("app")
-        handler, params = self._router.get_handler(method, path)
-
-        if handler is None:
-            return None, {}
-
-        # TODO: Inject deps when added to the router, not here
-        # inject app-level dependencies into the handler if the
-        # handler expects them in its signature
         sig = inspect.signature(handler)
 
         filtered_kwargs_names = [
@@ -58,9 +67,18 @@ class App:
             if param.default == inspect.Parameter.empty
         ]
 
+        # Inject each service into the handler
         for name, service in app_level_deps.items():
-            if "kwargs" in sig.parameters.keys() or name in filtered_kwargs_names:
+            if "kwargs" in sig.parameters or name in filtered_kwargs_names:
                 handler = inject(service, name)(handler)
+
+        return handler
+
+    def get_handler(self, method: str, path: str) -> Tuple[Handler, dict]:
+        handler, params = self._router.get_handler(method, path)
+
+        if handler is None:
+            return None, {}
 
         return handler, params
 
@@ -114,7 +132,7 @@ class App:
     def __call__(self, *args: Any, **kwds: Any) -> Any:
         async def uvicorn_handler(scope: dict, receive: Any, send: Any) -> None:
             if scope["type"] == "http":
-                req = parse_scope(scope)
+                req = await parse_scope(scope, receive)
                 response = await self._get_and_call_handler(req.method, req.path, req)
                 raw_response = format_response(response, settings.DEFAULT_HEADERS)
 

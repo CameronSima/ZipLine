@@ -27,4 +27,4 @@ class TestHtml(unittest.IsolatedAsyncioTestCase):
 
         self.assertEqual(response.status, 200)
         self.assertEqual(response.get_headers()["Content-Type"], "text/html")
-        self.assertTrue("<p>Welcome to the home page!</p>" in response.body)
+        self.assertTrue("<p>Welcome to the home page!</p>" in str(response.body))

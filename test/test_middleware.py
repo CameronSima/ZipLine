@@ -1,5 +1,7 @@
 import unittest
+import ziplineio
 from ziplineio import settings
+from ziplineio.dependency_injector import DependencyInjector
 from ziplineio.request import Request
 from ziplineio.app import App
 from ziplineio.middleware import middleware
@@ -11,6 +13,8 @@ class TestMiddleware(unittest.IsolatedAsyncioTestCase):
     def setUp(self):
         # Initialize the app
         self.app = App()
+        ziplineio.dependency_injector.injector = DependencyInjector()
+        self.app._injector = ziplineio.dependency_injector.injector
 
     async def test_middleware_injection(self):
         # Mock request data

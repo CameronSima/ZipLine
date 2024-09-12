@@ -8,6 +8,7 @@ import unittest
 
 from ziplineio.app import App
 from ziplineio.html.jinja import jinja
+from ziplineio.request import Request
 from ziplineio.router import Router
 from ziplineio.service import Service
 
@@ -51,6 +52,13 @@ async def str_handler():
     return "Hello, world!"
 
 
+@app.post("/post")
+async def post_handler(req: Request):
+    body = req.body.json()
+
+    return {"message": body}
+
+
 # Will be made multithreaded
 @app.get("/sync-thread")
 def sync_handler():
@@ -92,6 +100,7 @@ class TestE2E(unittest.IsolatedAsyncioTestCase):
                 while True:
                     try:
                         response = await client.get("http://localhost:5050/bytes")
+
                         if response.status_code == 200:
                             return True
                     except httpx.RequestError:
@@ -106,6 +115,15 @@ class TestE2E(unittest.IsolatedAsyncioTestCase):
     async def asyncTearDown(self):
         self.proc.terminate()
         self.proc.join()
+
+    async def test_handler_returns_post_body(self):
+        async with httpx.AsyncClient() as client:
+            response = await client.post(
+                "http://localhost:5050/post", json={"message": "Hello, world!"}
+            )
+
+            self.assertEqual(response.status_code, 200)
+            self.assertEqual(response.json(), {"message": {"message": "Hello, world!"}})
 
     async def test_handler_returns_bytes(self):
         async with httpx.AsyncClient() as client:

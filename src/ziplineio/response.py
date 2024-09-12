@@ -3,6 +3,7 @@ from typing import List, Tuple, TypedDict, Dict
 
 
 from ziplineio.exception import BaseHttpException
+from ziplineio.request import Body
 
 
 class RawResponse(TypedDict):
@@ -12,14 +13,14 @@ class RawResponse(TypedDict):
 
 
 class Response:
-    def __init__(self, status: int, headers: Dict[str, str], body: str):
+    def __init__(self, status: int, headers: Dict[str, str], body: Body):
         self.status = status
         self._headers = headers
         self.body = body
 
     status: int
     _headers: Dict[str, str]
-    body: str
+    body: Body
 
     # If content-type is not provided, infer content-type from the body
     def get_headers(self) -> Dict[str, str]:
@@ -42,7 +43,7 @@ class Response:
 class StaticFileResponse(Response):
     def __init__(self, file_path: str, headers: Dict[str, str]):
         body = self.get_file(file_path)
-        super().__init__(200, headers, body)
+        super().__init__(200, headers, Body.from_bytes(body))
 
     def get_file(self, file_path: str) -> bytes:
         with open(file_path, "rb") as file:
@@ -51,12 +52,16 @@ class StaticFileResponse(Response):
 
 class JinjaResponse(Response):
     def __init__(self, body: str):
+        body = Body.from_str(body)
         super().__init__(200, {"Content-Type": "text/html"}, body)
 
 
 class NotFoundResponse(Response):
-    def __init__(self, body: str, headers: Dict[str, str] = {}):
-        super().__init__(404, headers, body)
+    def __init__(
+        self, body: bytes | str | Response | Exception, headers: Dict[str, str] = {}
+    ):
+        body = format_body(body)
+        super().__init__(404, headers, Body(body))
 
 
 def format_headers(headers: Dict[str, str] | None) -> List[Tuple[bytes, bytes]]:
@@ -73,7 +78,7 @@ def format_body(body: bytes | str | dict) -> bytes:
     elif isinstance(body, dict):
         return bytes(json.dumps(body), "utf-8")
     elif isinstance(body, Response):
-        return format_body(body.body)
+        return format_body(body.body.bytes())
     raise ValueError("Invalid body type")
 
 
@@ -100,7 +105,7 @@ def format_response(
 
     elif isinstance(response, Response):
         headers = format_headers(response.get_headers())
-        body = format_body(response.body)
+        body = response.body.bytes()
         status = response.status
 
     elif isinstance(response, BaseHttpException):

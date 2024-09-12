@@ -1,6 +1,7 @@
 import unittest
 from unittest.mock import AsyncMock
-from ziplineio.dependency_injector import inject
+import ziplineio
+from ziplineio.dependency_injector import DependencyInjector, inject
 from ziplineio.request import Request
 from ziplineio.app import App, Router
 from ziplineio.middleware import middleware
@@ -17,6 +18,8 @@ class TestApp(unittest.IsolatedAsyncioTestCase):
     def setUp(self):
         # Initialize the app
         self.app = App()
+        ziplineio.dependency_injector.injector = DependencyInjector()
+        self.app._injector = ziplineio.dependency_injector.injector
 
         # Example middleware that just passes through the request
         async def example_middleware(req, **kwargs):

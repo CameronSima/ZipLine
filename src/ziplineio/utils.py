@@ -5,7 +5,7 @@ import asyncio
 from typing import Dict
 
 
-from ziplineio.request import Request
+from ziplineio.request import Body, Request
 from ziplineio.response import Response
 from ziplineio.handler import Handler
 from ziplineio.models import ASGIScope
@@ -20,6 +20,19 @@ def clean_kwargs(kwargs: dict, handler: Handler) -> dict:
     params = inspect.signature(handler).parameters
     kwargs = {k: v for k, v in kwargs.items() if k in params}
     return kwargs
+
+
+async def read_body(receive: callable) -> Body:
+    # Read the body
+    body = b""
+    more_body = True
+
+    while more_body:
+        message = await receive()
+        body += message.get("body", b"")
+        more_body = message.get("more_body", False)
+
+    return Body(body)
 
 
 async def call_handler(
@@ -39,7 +52,7 @@ async def call_handler(
     return response
 
 
-def parse_scope(scope: ASGIScope) -> Request:
+async def parse_scope(scope: ASGIScope, receive: callable) -> Request:
     query_string = scope["query_string"].decode("utf-8")
 
     if query_string == "":
@@ -53,6 +66,8 @@ def parse_scope(scope: ASGIScope) -> Request:
     else:
         path_params = {}
 
+    body = await read_body(receive)
+
     headers = dict((k.decode("utf-8"), v.decode("utf-8")) for k, v in scope["headers"])
     return Request(
         method=scope["method"],
@@ -60,7 +75,7 @@ def parse_scope(scope: ASGIScope) -> Request:
         query_params=query_params,
         path_params=path_params,
         headers=headers,
-        body="",
+        body=body,
     )
 
 

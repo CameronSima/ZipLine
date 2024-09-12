@@ -5,7 +5,7 @@ from pydantic import BaseModel
 
 from ziplineio.app import App
 
-from ziplineio.request import Request
+from ziplineio.request import Body, Request
 
 from ziplineio.utils import call_handler
 from ziplineio.validation.body import BodyParam, validate_body
@@ -25,7 +25,11 @@ class TestValidateBody(unittest.IsolatedAsyncioTestCase):
             age = req.body.get("age")
             return {"username": username, "age": age}
 
-        req = Request(method="POST", path="/", body={"username": "Amy", "age": 0.11})
+        req = Request(
+            method="POST",
+            path="/",
+            body=Body.from_json({"username": "Amy", "age": 0.11}),
+        )
         response = await call_handler(create_user_handler, req=req)
 
         self.assertEqual(response["username"], "Amy")
@@ -46,7 +50,9 @@ class TestValidateBody(unittest.IsolatedAsyncioTestCase):
             }  # Access the validated Pydantic model instance
 
         req = Request(
-            method="POST", path="/", body={"user": {"username": "John", "age": 30}}
+            method="POST",
+            path="/",
+            body=Body.from_json({"user": {"username": "John", "age": 30}}),
         )
         response = await call_handler(create_user_handler, req=req)
 
@@ -60,7 +66,7 @@ class TestValidateBody(unittest.IsolatedAsyncioTestCase):
             age = req.body.get("age")
             return {"username": username, "age": age}
 
-        req = Request(method="POST", path="/", body={"username": "Amy"})
+        req = Request(method="POST", path="/", body=Body.from_json({"username": "Amy"}))
         response = await call_handler(create_user_handler, req=req)
 
         self.assertEqual(
@@ -77,7 +83,7 @@ class TestValidateBody(unittest.IsolatedAsyncioTestCase):
             age = req.body.get("age")
             return {"username": username, "age": age}
 
-        req = Request(method="POST", path="/", body={"age": 0.11})
+        req = Request(method="POST", path="/", body=Body.from_json({"age": 0.11}))
         response = await call_handler(create_user_handler, req=req)
 
         self.assertEqual(response, {"username": None, "age": 0.11})
@@ -91,7 +97,9 @@ class TestValidateBody(unittest.IsolatedAsyncioTestCase):
             return {"username": username, "age": age}
 
         req = Request(
-            method="POST", path="/", body={"username": "Amy", "age": "invalid"}
+            method="POST",
+            path="/",
+            body=Body.from_json({"username": "Amy", "age": "invalid"}),
         )
         response = await call_handler(create_user_handler, req=req)
 

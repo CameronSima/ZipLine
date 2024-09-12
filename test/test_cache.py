@@ -22,8 +22,6 @@ class TestMemoryCache(unittest.IsolatedAsyncioTestCase):
         first_call = await self.app._get_and_call_handler("GET", "/cached_number", req)
         second_call = await self.app._get_and_call_handler("GET", "/cached_number", req)
 
-        print("HERE", first_call, second_call)
-
         # Ensure the result is cached
         self.assertEqual(first_call, second_call)
 
@@ -42,8 +40,6 @@ class TestMemoryCache(unittest.IsolatedAsyncioTestCase):
 
         first_call = await self.app._get_and_call_handler("GET", "/cached_number", req)
         second_call = await self.app._get_and_call_handler("GET", "/cached_number", req)
-
-        print("HERE", first_call, second_call)
 
         # Ensure the result is cached
         self.assertEqual(first_call, second_call)

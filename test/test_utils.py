@@ -18,14 +18,17 @@ class TestUtils(unittest.TestCase):
         # Assertions
         self.assertEqual(parsed, {"id": "123"})
 
-    def test_parse_scope(self):
+    async def test_parse_scope(self):
+        def receive():
+            return b""
+
         scope = {
             "query_string": b"",
             "path": "/user/12",
             "headers": [(b"host", b"localhost")],
             "method": "GET",
         }
-        parsed = utils.parse_scope(scope)
+        parsed = await utils.parse_scope(scope, receive)
 
         # Assertions
         self.assertEqual(parsed.method, "GET")
